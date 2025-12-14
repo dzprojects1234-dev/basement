@@ -1,0 +1,3 @@
+// Auto-generated - Supabase credentials
+window.SUPABASE_URL = "https://hrsabymhhseoezieaued.supabase.co";
+window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhyc2FieW1oaHNlb2V6aWVhdWVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3Mjc1MzgsImV4cCI6MjA4MTMwMzUzOH0.d1XujG5bYEsHGalmJv9TOIrnzOS0gNhoCL3uxeXGHzo";
