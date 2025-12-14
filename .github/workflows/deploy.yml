@@ -1,0 +1,25 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Create config file with Supabase info
+        run: |
+          echo '// Auto-generated - Supabase credentials' > config.js
+          echo 'window.SUPABASE_URL = "'${{ secrets.SUPABASE_URL }}'";' >> config.js
+          echo 'window.SUPABASE_ANON_KEY = "'${{ secrets.SUPABASE_ANON_KEY }}'";' >> config.js
+          echo '✅ Supabase info added to config.js'
+      
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
