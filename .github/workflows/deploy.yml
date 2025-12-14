@@ -5,13 +5,13 @@ on:
     branches: [main]
 
 jobs:
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-  
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,4 +27,4 @@ permissions:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
+          publish_dir: ./  # This needs a value, e.g., "./dist" or "./build" or "./" for current directory
