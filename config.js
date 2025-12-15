@@ -1,12 +1,13 @@
 const CONFIG = {
   apiUrl: "https://withered-star-d658alamak.dz-projects1234.workers.dev/api",
-  mode: "online",
-  forceConnect: true
+  mode: "online"
 };
 
-// Auto-connect when page loads
-window.addEventListener('load', function() {
-  setTimeout(function() {
-    document.getElementById('connectBtn')?.click();
-  }, 1000);
-});
+// Auto-test connection
+console.log('🔧 Config loaded:', CONFIG);
+
+// Test Worker immediately
+fetch(CONFIG.apiUrl + '/health')
+  .then(response => response.json())
+  .then(data => console.log('✅ Worker test:', data))
+  .catch(error => console.log('❌ Worker test failed:', error));
