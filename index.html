@@ -2,51 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Basement Supply Inventory Tracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Load configuration -->
     <script src="config.js"></script>
     
-    <!-- CHECK LOGIN FIRST -->
-    <script>
-        // ==================== CHECK LOGIN ====================
-        (function() {
-            const savedLogin = localStorage.getItem('inventory_login');
-            
-            if (!savedLogin) {
-                // Not logged in, redirect to login
-                window.location.href = 'login.html';
-                return;
-            }
-            
-            try {
-                const loginData = JSON.parse(savedLogin);
-                const now = Date.now();
-                
-                // Check if expired
-                if (now > loginData.expires) {
-                    localStorage.removeItem('inventory_login');
-                    window.location.href = 'login.html';
-                    return;
-                }
-                
-                // User is logged in, show welcome
-                console.log(`Welcome ${loginData.user}!`);
-                
-                // Add logout button to header later
-                window.currentUser = loginData.user;
-                
-            } catch (e) {
-                localStorage.removeItem('inventory_login');
-                window.location.href = 'login.html';
-            }
-        })();
-    </script>
-    
     <style>
-        /* ==================== ALL YOUR CSS ==================== */
+        /* ==================== CSS RESET & VARIABLES ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -77,7 +41,7 @@
             color: var(--dark-text);
             line-height: 1.6;
             min-height: 100vh;
-            padding: 20px;
+            padding: 12px;
         }
 
         .container {
@@ -88,18 +52,25 @@
             min-height: 95vh;
         }
 
-        /* Header Styles */
+        /* ==================== HEADER ==================== */
         header {
             background: var(--dark-card);
             border-radius: 12px;
-            padding: 20px 30px;
-            margin-bottom: 30px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
             border: 1px solid var(--dark-border);
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 20px;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        @media (min-width: 768px) {
+            header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                padding: 20px 30px;
+            }
         }
 
         .header-left {
@@ -107,58 +78,113 @@
         }
 
         h1 {
-            font-size: 28px;
+            font-size: 22px;
             color: var(--light);
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
             margin-bottom: 5px;
+            flex-wrap: wrap;
+        }
+
+        @media (min-width: 768px) {
+            h1 {
+                font-size: 28px;
+            }
         }
 
         h1 i {
             color: var(--primary);
-            font-size: 32px;
+            font-size: 26px;
+        }
+
+        @media (min-width: 768px) {
+            h1 i {
+                font-size: 32px;
+            }
         }
 
         .subtitle {
             color: var(--dark-text-secondary);
-            font-size: 16px;
+            font-size: 14px;
+        }
+
+        @media (min-width: 768px) {
+            .subtitle {
+                font-size: 16px;
+            }
         }
 
         .user-info {
             display: flex;
-            align-items: center;
-            gap: 15px;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .user-info {
+                flex-direction: row;
+                align-items: center;
+                width: auto;
+                gap: 15px;
+            }
+        }
+
+        .user-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .user-row {
+                width: auto;
+            }
         }
 
         .user-badge {
             background: var(--dark-bg);
             border: 1px solid var(--dark-border);
-            padding: 8px 16px;
+            padding: 8px 12px;
             border-radius: 20px;
             display: flex;
             align-items: center;
             gap: 8px;
             font-size: 14px;
             color: var(--light);
+            flex: 1;
+            justify-content: center;
         }
 
-        .user-badge i {
-            color: var(--primary);
+        @media (min-width: 768px) {
+            .user-badge {
+                flex: none;
+                padding: 8px 16px;
+            }
         }
 
         .logout-btn {
             background: transparent;
             border: 1px solid var(--danger);
             color: var(--danger);
-            padding: 8px 16px;
+            padding: 8px 12px;
             border-radius: 8px;
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 6px;
             font-size: 14px;
             transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        @media (min-width: 768px) {
+            .logout-btn {
+                flex: none;
+                padding: 8px 16px;
+            }
         }
 
         .logout-btn:hover {
@@ -169,13 +195,23 @@
         .cloud-status {
             background: var(--dark-card);
             border: 1px solid var(--dark-border);
-            padding: 10px 20px;
+            padding: 10px 15px;
             border-radius: 50px;
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 14px;
+            justify-content: center;
+            gap: 8px;
+            font-size: 13px;
             transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .cloud-status {
+                width: auto;
+                font-size: 14px;
+                padding: 10px 20px;
+            }
         }
 
         .status-connected {
@@ -188,7 +224,7 @@
             color: var(--warning);
         }
 
-        /* Login Modal */
+        /* ==================== LOGIN MODAL ==================== */
         #loginModal {
             position: fixed;
             top: 0;
@@ -200,18 +236,25 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
             backdrop-filter: blur(5px);
         }
 
         .login-modal-content {
             background: var(--dark-card);
-            padding: 40px;
+            padding: 30px;
             border-radius: 16px;
             max-width: 450px;
-            width: 90%;
+            width: 100%;
             border: 1px solid var(--dark-border);
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
             text-align: center;
+        }
+
+        @media (max-width: 480px) {
+            .login-modal-content {
+                padding: 20px;
+            }
         }
 
         .login-modal-content h2 {
@@ -221,12 +264,12 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            font-size: 24px;
+            font-size: 22px;
         }
 
         .login-modal-content p {
             color: var(--dark-text-secondary);
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             line-height: 1.6;
             font-size: 15px;
         }
@@ -236,27 +279,27 @@
             background: var(--dark-bg);
             border: 1px solid var(--dark-border);
             color: var(--light);
-            padding: 14px 18px;
+            padding: 14px;
             border-radius: 8px;
             font-size: 16px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             transition: all 0.3s ease;
-        }
-
-        .modal-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
         }
 
         .modal-actions {
             display: flex;
-            gap: 15px;
+            flex-direction: column;
+            gap: 12px;
             margin-top: 10px;
         }
 
+        @media (min-width: 480px) {
+            .modal-actions {
+                flex-direction: row;
+            }
+        }
+
         .modal-actions button {
-            flex: 1;
             padding: 14px;
             border-radius: 8px;
             font-weight: 500;
@@ -264,6 +307,7 @@
             transition: all 0.3s ease;
             border: none;
             font-size: 16px;
+            flex: 1;
         }
 
         .modal-actions button:first-child {
@@ -282,67 +326,72 @@
             border: 1px solid var(--dark-border);
         }
 
-        .modal-actions button:last-child:hover {
-            background: var(--dark-card-hover);
-            border-color: var(--primary);
-        }
-
-        /* Main Content Layout */
+        /* ==================== MAIN CONTENT ==================== */
         .inventory-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            margin-bottom: 30px;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
             flex: 1;
         }
 
-        @media (max-width: 1024px) {
+        @media (min-width: 1024px) {
             .inventory-container {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+                gap: 30px;
+                margin-bottom: 30px;
             }
         }
 
-        /* Inventory List Panel */
-        .inventory-list {
-            background: var(--dark-card);
-            border-radius: 12px;
-            padding: 25px;
-            border: 1px solid var(--dark-border);
-            display: flex;
-            flex-direction: column;
-        }
-
+        .inventory-list,
         .inventory-form {
             background: var(--dark-card);
             border-radius: 12px;
-            padding: 25px;
+            padding: 20px;
             border: 1px solid var(--dark-border);
             display: flex;
             flex-direction: column;
         }
 
+        @media (min-width: 768px) {
+            .inventory-list,
+            .inventory-form {
+                padding: 25px;
+            }
+        }
+
         .section-title {
-            font-size: 20px;
+            font-size: 18px;
             color: var(--light);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+        }
+
+        @media (min-width: 768px) {
+            .section-title {
+                font-size: 20px;
+            }
         }
 
         .section-title i {
             color: var(--primary);
         }
 
-        /* Filter Controls */
-        .category-filter {
-            margin-bottom: 25px;
-        }
-
+        /* ==================== FILTER CONTROLS ==================== */
         .filter-controls {
             display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 480px) {
+            .filter-controls {
+                flex-direction: row;
+                gap: 15px;
+            }
         }
 
         select {
@@ -353,65 +402,73 @@
             border-radius: 8px;
             font-size: 14px;
             cursor: pointer;
-            min-width: 180px;
+            width: 100%;
             transition: all 0.3s ease;
         }
 
-        select:hover {
-            border-color: var(--primary);
+        @media (min-width: 480px) {
+            select {
+                width: auto;
+                min-width: 180px;
+            }
         }
 
-        select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
-        }
-
-        /* Inventory Items */
+        /* ==================== INVENTORY ITEMS LIST ==================== */
         #inventoryItems {
             flex: 1;
             overflow-y: auto;
             max-height: 500px;
-            margin: 20px 0;
+            margin: 15px 0;
         }
 
         .inventory-item {
             background: var(--dark-bg);
             border: 1px solid var(--dark-border);
             border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 15px;
+            padding: 15px;
+            margin-bottom: 12px;
             transition: all 0.3s ease;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .inventory-item:hover {
-            background: var(--dark-card-hover);
-            border-color: var(--primary);
-            transform: translateY(-2px);
+        @media (min-width: 640px) {
+            .inventory-item {
+                flex-direction: row;
+                align-items: center;
+                padding: 20px;
+                gap: 15px;
+            }
         }
 
         .item-info {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
             flex: 1;
             min-width: 0;
         }
 
         .item-icon {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 20px;
             color: white;
             flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+            .item-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 24px;
+            }
         }
 
         .item-details {
@@ -421,53 +478,63 @@
 
         .item-details h3 {
             color: var(--light);
-            margin-bottom: 5px;
-            font-size: 16px;
+            margin-bottom: 4px;
+            font-size: 15px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        @media (min-width: 768px) {
+            .item-details h3 {
+                font-size: 16px;
+            }
         }
 
         .item-details p {
             color: var(--dark-text-secondary);
-            font-size: 14px;
+            font-size: 13px;
             display: flex;
             align-items: center;
             gap: 5px;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .item-details .item-notes {
-            font-size: 13px;
-            color: var(--dark-text-secondary);
-            opacity: 0.8;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            max-width: 300px;
+            margin-bottom: 3px;
+            flex-wrap: wrap;
         }
 
         .item-meta {
             display: flex;
-            flex-direction: column;
             align-items: center;
+            justify-content: space-between;
             gap: 10px;
-            margin: 0 15px;
+        }
+
+        @media (min-width: 640px) {
+            .item-meta {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                margin: 0 15px;
+            }
         }
 
         .item-quantity {
             text-align: center;
-            padding: 8px 16px;
+            padding: 6px 12px;
             background: var(--dark-bg);
             border-radius: 20px;
             border: 1px solid var(--dark-border);
             font-weight: bold;
             color: var(--light);
-            min-width: 80px;
-            font-size: 14px;
+            min-width: 70px;
+            font-size: 13px;
+        }
+
+        @media (min-width: 768px) {
+            .item-quantity {
+                padding: 8px 16px;
+                min-width: 80px;
+                font-size: 14px;
+            }
         }
 
         .item-photo-indicator {
@@ -483,24 +550,21 @@
             cursor: default;
         }
 
-        .low-stock {
-            color: var(--warning) !important;
-            border-color: var(--warning) !important;
-        }
-
-        .critical-stock {
-            color: var(--danger) !important;
-            border-color: var(--danger) !important;
-        }
-
         .item-actions {
             display: flex;
             gap: 8px;
+            justify-content: flex-end;
+        }
+
+        @media (min-width: 640px) {
+            .item-actions {
+                justify-content: flex-start;
+            }
         }
 
         .action-btn {
-            width: 40px;
-            height: 40px;
+            width: 36px;
+            height: 36px;
             border-radius: 8px;
             border: 1px solid var(--dark-border);
             background: var(--dark-bg);
@@ -513,137 +577,28 @@
             flex-shrink: 0;
         }
 
-        .action-btn:hover {
-            background: var(--primary);
-            border-color: var(--primary);
+        @media (min-width: 768px) {
+            .action-btn {
+                width: 40px;
+                height: 40px;
+            }
         }
 
-        .view-btn:hover {
-            background: var(--info);
-            border-color: var(--info);
-        }
-
-        .edit-btn:hover {
-            background: var(--info);
-            border-color: var(--info);
-        }
-
-        .delete-btn:hover {
-            background: var(--danger);
-            border-color: var(--danger);
-        }
-
-        /* Attachment Modal */
-        #attachmentModal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 2000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal-content {
-            background: var(--dark-card);
-            padding: 0;
-            border-radius: 16px;
-            max-width: 800px;
-            width: 90%;
-            border: 1px solid var(--dark-border);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            overflow: hidden;
-        }
-
-        .modal-header {
-            padding: 20px 30px;
-            border-bottom: 1px solid var(--dark-border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h2 {
-            color: var(--light);
-            font-size: 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .close-modal {
-            background: transparent;
-            border: none;
-            color: var(--dark-text-secondary);
-            font-size: 24px;
-            cursor: pointer;
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .close-modal:hover {
-            background: var(--dark-bg);
-            color: var(--light);
-        }
-
-        .modal-body {
-            padding: 30px;
-            text-align: center;
-        }
-
-        .attachment-image {
-            max-width: 100%;
-            max-height: 500px;
-            border-radius: 8px;
-            border: 1px solid var(--dark-border);
-            margin-bottom: 20px;
-        }
-
-        .no-attachment {
-            padding: 40px;
-            color: var(--dark-text-secondary);
-            font-size: 16px;
-        }
-
-        .no-attachment i {
-            font-size: 64px;
-            margin-bottom: 20px;
-            opacity: 0.5;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--dark-text-secondary);
-        }
-
-        .empty-state i {
-            font-size: 64px;
-            margin-bottom: 20px;
-            color: var(--dark-border);
-        }
-
-        .empty-state h3 {
-            color: var(--dark-text-secondary);
-            margin-bottom: 10px;
-            font-size: 20px;
-        }
-
-        /* Form Styles */
+        /* ==================== FORM STYLES ==================== */
         .form-title {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 480px) {
+            .form-title {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                gap: 20px;
+            }
         }
 
         .clear-form {
@@ -656,23 +611,26 @@
             font-size: 14px;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             transition: all 0.3s ease;
+            width: 100%;
         }
 
-        .clear-form:hover {
-            border-color: var(--danger);
-            color: var(--danger);
+        @media (min-width: 480px) {
+            .clear-form {
+                width: auto;
+            }
         }
 
         .form-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         label {
             display: block;
             color: var(--dark-text-secondary);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-size: 14px;
             font-weight: 500;
         }
@@ -691,60 +649,46 @@
             transition: all 0.3s ease;
         }
 
-        input:focus,
-        textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
-        }
-
         /* Quantity Controls */
         .quantity-controls {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
         }
 
         .quantity-btn {
             background: var(--dark-bg);
             border: 1px solid var(--dark-border);
             color: var(--light);
-            padding: 8px 16px;
+            padding: 8px 12px;
             border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
-        }
-
-        .quantity-btn:hover {
-            background: var(--primary);
-            border-color: var(--primary);
+            font-size: 14px;
+            min-width: 50px;
         }
 
         /* Photo Section */
-        .photo-section {
+        .photo-controls {
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
         }
 
-        .photo-preview {
-            width: 100%;
-            max-height: 200px;
-            object-fit: cover;
-            border-radius: 8px;
-            border: 1px solid var(--dark-border);
-            display: none;
-        }
-
-        .photo-preview.visible {
-            display: block;
+        @media (min-width: 480px) {
+            .photo-controls {
+                flex-direction: row;
+                align-items: center;
+            }
         }
 
         .camera-controls {
             display: flex;
             gap: 10px;
+            flex: 1;
         }
 
         .photo-btn {
@@ -760,24 +704,11 @@
             justify-content: center;
             gap: 8px;
             transition: all 0.3s ease;
-        }
-
-        .photo-btn:hover {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
-        .photo-btn.secondary {
-            background: var(--dark-card);
-        }
-
-        .photo-btn.secondary:hover {
-            background: var(--primary-dark);
+            font-size: 14px;
         }
 
         .cancel-btn {
-            flex: 0 0 auto;
-            padding: 12px 20px;
+            padding: 12px;
             background: transparent;
             border: 1px solid var(--danger);
             color: var(--danger);
@@ -788,21 +719,7 @@
             justify-content: center;
             gap: 8px;
             transition: all 0.3s ease;
-        }
-
-        .cancel-btn:hover {
-            background: var(--danger);
-            color: white;
-        }
-
-        .cancel-btn.visible {
-            display: flex;
-        }
-
-        .photo-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
+            font-size: 14px;
         }
 
         /* Buttons */
@@ -810,7 +727,7 @@
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 15px;
             border-radius: 8px;
             font-size: 16px;
             font-weight: 600;
@@ -823,15 +740,18 @@
             transition: all 0.3s ease;
         }
 
-        .add-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-        }
-
         .sync-controls {
             display: flex;
-            gap: 15px;
+            flex-direction: column;
+            gap: 10px;
             margin-top: 20px;
+        }
+
+        @media (min-width: 480px) {
+            .sync-controls {
+                flex-direction: row;
+                gap: 15px;
+            }
         }
 
         .sync-btn {
@@ -847,29 +767,22 @@
             justify-content: center;
             gap: 8px;
             transition: all 0.3s ease;
+            font-size: 14px;
         }
 
-        .sync-btn:hover {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-
-        .sync-btn.warning:hover {
-            background: var(--warning);
-            border-color: var(--warning);
-        }
-
-        /* Summary Section */
+        /* ==================== SUMMARY SECTION ==================== */
         .summary {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
         }
 
-        @media (max-width: 768px) {
+        @media (min-width: 640px) {
             .summary {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 20px;
+                margin-bottom: 30px;
             }
         }
 
@@ -877,49 +790,64 @@
             background: var(--dark-card);
             border: 1px solid var(--dark-border);
             border-radius: 12px;
-            padding: 25px;
+            padding: 20px;
             text-align: center;
             transition: all 0.3s ease;
         }
 
-        .summary-item:hover {
-            border-color: var(--primary);
-            transform: translateY(-2px);
-        }
-
         .summary-value {
-            font-size: 36px;
+            font-size: 28px;
             font-weight: bold;
             color: var(--light);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+        }
+
+        @media (min-width: 768px) {
+            .summary-value {
+                font-size: 36px;
+            }
         }
 
         .summary-label {
             color: var(--dark-text-secondary);
-            font-size: 14px;
+            font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
-        /* Footer */
+        @media (min-width: 768px) {
+            .summary-label {
+                font-size: 14px;
+            }
+        }
+
+        /* ==================== FOOTER ==================== */
         footer {
             text-align: center;
-            padding: 20px;
+            padding: 15px;
             color: var(--dark-text-secondary);
-            font-size: 14px;
+            font-size: 13px;
             margin-top: auto;
             border-top: 1px solid var(--dark-border);
         }
 
-        /* Toast Notifications */
+        @media (min-width: 768px) {
+            footer {
+                padding: 20px;
+                font-size: 14px;
+            }
+        }
+
+        /* ==================== TOAST NOTIFICATIONS ==================== */
         .toast {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 15px;
+            right: 15px;
+            left: 15px;
             background: var(--dark-card);
             border: 1px solid var(--dark-border);
             color: var(--light);
-            padding: 15px 25px;
+            padding: 12px 20px;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -929,30 +857,52 @@
             animation: slideIn 0.3s ease;
         }
 
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
+        @media (min-width: 480px) {
+            .toast {
+                left: auto;
+                max-width: 350px;
             }
         }
 
-        /* Scrollbar */
+        /* ==================== UTILITY CLASSES ==================== */
+        .mobile-only {
+            display: block;
+        }
+
+        @media (min-width: 768px) {
+            .mobile-only {
+                display: none;
+            }
+        }
+
+        .desktop-only {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .desktop-only {
+                display: block;
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--dark-text-secondary);
+        }
+
+        /* ==================== SCROLLBAR ==================== */
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 6px;
         }
 
         ::-webkit-scrollbar-track {
             background: var(--dark-bg);
-            border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb {
             background: var(--dark-border);
-            border-radius: 4px;
+            border-radius: 3px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
@@ -961,59 +911,49 @@
     </style>
 </head>
 <body>
-    <!-- Login Modal (Shows First) -->
+    <!-- Login Modal -->
     <div id="loginModal" class="modal">
         <div class="login-modal-content">
             <h2><i class="fas fa-lock"></i> Inventory System</h2>
             <p>Checking connection to database...</p>
             <div class="modal-actions">
-                <button id="connectBtn">Connect Online</button>
-                <button id="localBtn">Use Offline Mode</button>
+                <button id="connectBtn">
+                    <i class="fas fa-cloud"></i> Connect Online
+                </button>
+                <button id="localBtn">
+                    <i class="fas fa-desktop"></i> Use Offline Mode
+                </button>
             </div>
             <p style="margin-top: 20px; font-size: 14px; color: #94a3b8;">
-                <i class="fas fa-info-circle"></i> Online mode saves to cloud, offline saves to your computer
+                <i class="fas fa-info-circle"></i> Online mode saves to cloud
             </p>
         </div>
     </div>
 
-    <!-- Main App (Hidden until connected) -->
+    <!-- Main App -->
     <div class="container" id="appContainer" style="display: none;">
         <!-- Header -->
         <header>
             <div class="header-left">
-                <h1><i class="fas fa-boxes"></i> Basement Supply Inventory Tracker</h1>
+                <h1><i class="fas fa-boxes"></i> Basement Supply Inventory</h1>
                 <p class="subtitle">Secure shared inventory with team</p>
             </div>
             <div class="user-info">
-                <div class="user-badge" id="userBadge">
-                    <i class="fas fa-user"></i>
-                    <span id="usernameDisplay">Admin</span>
+                <div class="user-row">
+                    <div class="user-badge" id="userBadge">
+                        <i class="fas fa-user"></i>
+                        <span id="usernameDisplay">Admin</span>
+                    </div>
+                    <button class="logout-btn" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
                 </div>
-                <button class="logout-btn" id="logoutBtn">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
                 <div class="cloud-status" id="cloudStatus">
                     <i class="fas fa-cloud"></i>
-                    <span id="statusText">Checking connection...</span>
+                    <span id="statusText">Checking...</span>
                 </div>
             </div>
         </header>
-
-        <!-- Attachment Modal -->
-        <div id="attachmentModal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2><i class="fas fa-paperclip"></i> Item Photo</h2>
-                    <button class="close-modal" id="closeModalBtn">&times;</button>
-                </div>
-                <div class="modal-body" id="attachmentModalBody">
-                    <div class="no-attachment">
-                        <i class="fas fa-image"></i>
-                        <p>No photo available</p>
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <!-- Main Content -->
         <div class="inventory-container">
@@ -1045,7 +985,7 @@
                 <div id="emptyState" class="empty-state">
                     <i class="fas fa-clipboard-list"></i>
                     <h3>No Items in Inventory</h3>
-                    <p>Add your first item using the form on the right</p>
+                    <p>Add your first item using the form</p>
                 </div>
                 
                 <div class="sync-controls">
@@ -1053,7 +993,7 @@
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                     <button class="sync-btn warning" id="exportBtn">
-                        <i class="fas fa-download"></i> Export Backup
+                        <i class="fas fa-download"></i> Export
                     </button>
                     <button class="sync-btn" id="syncLocalBtn" style="display: none;">
                         <i class="fas fa-cloud-upload"></i> Sync to Cloud
@@ -1066,7 +1006,7 @@
                 <div class="form-title">
                     <h2 class="section-title" id="formTitle"><i class="fas fa-plus"></i> Add New Item</h2>
                     <button type="button" class="clear-form" id="clearFormBtn" style="display: none;">
-                        <i class="fas fa-times"></i> Clear
+                        <i class="fas fa-times"></i> Clear Form
                     </button>
                 </div>
                 
@@ -1101,7 +1041,7 @@
                         <div class="quantity-controls">
                             <button type="button" class="quantity-btn" id="minus5Btn">-5</button>
                             <button type="button" class="quantity-btn" id="minus1Btn">-1</button>
-                            <span style="padding: 0 15px; font-weight: bold; color: var(--light);">Qty</span>
+                            <span style="padding: 0 10px; font-weight: bold; color: var(--light);">Qty</span>
                             <button type="button" class="quantity-btn" id="plus1Btn">+1</button>
                             <button type="button" class="quantity-btn" id="plus5Btn">+5</button>
                         </div>
@@ -1115,15 +1055,15 @@
                     <div class="form-group">
                         <label>Item Photo (Optional)</label>
                         <div class="photo-section">
-                            <img id="photoPreview" class="photo-preview" alt="Photo preview">
+                            <img id="photoPreview" class="photo-preview" alt="Photo preview" style="display: none;">
                             <div class="photo-controls">
                                 <div class="camera-controls">
                                     <button type="button" class="photo-btn" id="cameraBtn">
-                                        <i class="fas fa-camera"></i> Take Photo
+                                        <i class="fas fa-camera"></i> <span class="mobile-only">Camera</span><span class="desktop-only">Take Photo</span>
                                     </button>
                                     <input type="file" id="mobileCameraInput" accept="image/*" capture="environment" style="display: none;">
                                     <button type="button" class="photo-btn secondary" id="uploadBtn">
-                                        <i class="fas fa-upload"></i> Upload
+                                        <i class="fas fa-upload"></i> <span class="mobile-only">Upload</span><span class="desktop-only">Upload Photo</span>
                                     </button>
                                     <input type="file" id="fileUpload" accept="image/*" style="display: none;">
                                 </div>
@@ -1162,87 +1102,87 @@
         </footer>
     </div>
 
-    <!-- No more Supabase JS - using Worker instead -->
-    
     <script>
-        // ==================== LOGOUT FUNCTION ====================
-        function setupLogout() {
-            document.getElementById('logoutBtn').addEventListener('click', function() {
-                if (confirm('Are you sure you want to logout?')) {
-                    localStorage.removeItem('inventory_login');
-                    window.location.href = 'login.html';
-                }
-            });
-            
-            // Show current user
-            const savedLogin = localStorage.getItem('inventory_login');
-            if (savedLogin) {
-                try {
-                    const loginData = JSON.parse(savedLogin);
-                    document.getElementById('usernameDisplay').textContent = loginData.user;
-                } catch (e) {
-                    // Ignore
-                }
-            }
-        }
-        
         // ==================== CONFIGURATION ====================
-        // Get config from config.js (loaded in head)
         const API_BASE = window.CONFIG?.apiUrl || 'https://withered-star-d658alamak.dz-projects1234.workers.dev/api';
         
         // App variables
         let inventory = [];
         let capturedPhoto = null;
         let isOnline = false;
-        let localChanges = []; // Track local changes to sync later
+        let localChanges = [];
+        
+        // ==================== CHECK LOGIN ====================
+        (function() {
+            const savedLogin = localStorage.getItem('inventory_login');
+            
+            if (!savedLogin) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                const loginData = JSON.parse(savedLogin);
+                const now = Date.now();
+                
+                if (now > loginData.expires) {
+                    localStorage.removeItem('inventory_login');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                window.currentUser = loginData.user;
+                document.getElementById('usernameDisplay').textContent = loginData.user;
+                
+            } catch (e) {
+                localStorage.removeItem('inventory_login');
+                window.location.href = 'login.html';
+            }
+        })();
         
         // ==================== START APP ====================
         document.addEventListener('DOMContentLoaded', function() {
-            // Setup logout button
             setupLogout();
-            
-            // Show login modal first
             document.getElementById('loginModal').style.display = 'flex';
             setupButtons();
-            
-            // Auto-check if online mode works
             checkOnlineConnection();
         });
+        
+        // ==================== LOGOUT ====================
+        function setupLogout() {
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                if (confirm('Logout from inventory system?')) {
+                    localStorage.removeItem('inventory_login');
+                    window.location.href = 'login.html';
+                }
+            });
+        }
         
         // ==================== CHECK ONLINE CONNECTION ====================
         async function checkOnlineConnection() {
             try {
-                // Test Worker connection
-                const response = await fetch(`${API_BASE}/health`, {
-                    method: 'HEAD',
-                    timeout: 5000
-                }).catch(() => null);
-                
+                const response = await fetch(`${API_BASE}/health`);
                 if (response && response.ok) {
                     document.getElementById('statusText').textContent = 'Cloud available';
-                    showToast('✅ Cloud connection available');
                 } else {
                     document.getElementById('statusText').textContent = 'Cloud unavailable';
                 }
             } catch (error) {
-                console.log('Cloud check failed:', error);
+                console.log('Cloud check:', error.message);
             }
         }
         
         // ==================== CONNECT TO ONLINE MODE ====================
         async function connectToOnlineMode() {
             try {
-                console.log('🔗 Connecting to online mode via Worker...');
-                
-                // Test with actual data fetch
+                showToast('🔗 Connecting to cloud...');
                 const response = await fetch(`${API_BASE}/inventory?limit=1`);
                 
                 if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Worker error: ${response.status} - ${errorText}`);
+                    throw new Error(`Worker error: ${response.status}`);
                 }
                 
-                // Success - we're online!
+                // Success
                 isOnline = true;
                 document.getElementById('loginModal').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'flex';
@@ -1255,8 +1195,8 @@
                 loadData();
                 
             } catch (error) {
-                console.log('❌ Cannot connect to cloud:', error);
-                showToast('⚠️ Failed to connect to cloud. Using offline mode.');
+                console.log('Cannot connect to cloud:', error);
+                showToast('⚠️ Cloud connection failed. Using offline mode.');
                 useLocalStorage();
             }
         }
@@ -1271,7 +1211,7 @@
             document.getElementById('cloudStatus').classList.add('status-disconnected');
             document.getElementById('syncLocalBtn').style.display = 'flex';
             
-            showToast('📱 Using local storage. Changes saved offline.');
+            showToast('📱 Using local storage');
             loadLocalData();
         }
         
@@ -1290,19 +1230,14 @@
         
         function saveLocalData() {
             localStorage.setItem('inventory_data', JSON.stringify(inventory));
-            localStorage.setItem('last_save', new Date().toISOString());
         }
         
         // ==================== LOAD DATA ====================
         async function loadData() {
             if (isOnline) {
-                // Load from Cloud via Worker
                 try {
                     const response = await fetch(`${API_BASE}/inventory`);
-                    
-                    if (!response.ok) {
-                        throw new Error(`Failed to load: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`Failed: ${response.status}`);
                     
                     const data = await response.json();
                     inventory = data || [];
@@ -1310,79 +1245,82 @@
                     updateNumbers();
                     showToast('✅ Loaded from cloud');
                     
-                    // Also save to local storage as backup
+                    // Save backup locally
                     saveLocalData();
                     
                 } catch (error) {
-                    console.log('Error loading from cloud:', error);
+                    console.log('Cloud load error:', error);
                     showToast('⚠️ Cloud load failed, using local data');
                     loadLocalData();
                 }
             } else {
-                // Load from local storage
                 loadLocalData();
             }
         }
         
         // ==================== SAVE ITEM ====================
         async function saveItem(item) {
+            // Prepare data for Supabase
+            const supabaseData = {
+                name: item.name,
+                category: item.category,
+                code: item.code,
+                quantity: item.quantity,
+                notes: item.notes || null,
+                photo_url: item.photo_url || null
+            };
+            
+            // Add ID only if updating
+            if (item.id && item.id !== 'undefined') {
+                supabaseData.id = item.id;
+            }
+            
             if (isOnline) {
                 try {
                     let response;
                     
-                    if (item.id) {
-                        // Update existing item
+                    if (item.id && item.id !== 'undefined') {
+                        // Update
                         response = await fetch(`${API_BASE}/inventory?id=${item.id}`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(item)
+                            body: JSON.stringify(supabaseData)
                         });
                     } else {
-                        // Add new item
+                        // Create
                         response = await fetch(`${API_BASE}/inventory`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(item)
+                            body: JSON.stringify(supabaseData)
                         });
                     }
                     
                     if (!response.ok) {
-                        throw new Error(`Save failed: ${response.status}`);
+                        const errorText = await response.text();
+                        throw new Error(`Save failed: ${response.status} - ${errorText}`);
                     }
                     
-                    const savedItem = await response.json();
                     showToast('✅ Saved to cloud');
-                    
-                    // Reload data to get fresh from server
                     loadData();
                     
                 } catch (error) {
-                    console.log('Error saving to cloud:', error);
+                    console.log('Cloud save error:', error);
                     showToast('⚠️ Cloud save failed, saving locally');
-                    
-                    // Save locally and mark for sync later
                     saveToLocal(item);
-                    if (!localChanges.some(change => change.id === item.id)) {
-                        localChanges.push({...item, action: item.id ? 'update' : 'create'});
-                    }
                 }
             } else {
-                // Save to local storage
                 saveToLocal(item);
-                if (!localChanges.some(change => change.id === item.id)) {
-                    localChanges.push({...item, action: item.id ? 'update' : 'create'});
-                }
             }
         }
         
         function saveToLocal(item) {
-            if (item.id) {
+            if (item.id && item.id !== 'undefined') {
                 const index = inventory.findIndex(i => i.id === item.id);
                 if (index !== -1) {
                     inventory[index] = item;
                 }
             } else {
-                item.id = Date.now(); // Local ID
+                item.id = Date.now();
                 item.created_at = new Date().toISOString();
                 inventory.push(item);
             }
@@ -1403,72 +1341,76 @@
                         method: 'DELETE'
                     });
                     
-                    if (!response.ok) {
-                        throw new Error(`Delete failed: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`Delete failed: ${response.status}`);
                     
                     showToast('✅ Deleted from cloud');
                     loadData();
                     
                 } catch (error) {
-                    console.log('Error deleting from cloud:', error);
+                    console.log('Cloud delete error:', error);
                     showToast('⚠️ Cloud delete failed, deleting locally');
-                    
-                    // Delete locally and mark for sync
                     deleteFromLocal(id);
-                    localChanges.push({id, action: 'delete'});
                 }
             } else {
                 deleteFromLocal(id);
-                localChanges.push({id, action: 'delete'});
             }
         }
         
         function deleteFromLocal(id) {
-            inventory = inventory.filter(item => item.id !== id);
+            inventory = inventory.filter(item => item.id != id);
             saveLocalData();
             showItems();
             updateNumbers();
             showToast('✅ Deleted locally');
         }
         
-        // ==================== SYNC LOCAL TO CLOUD ====================
-        async function syncLocalToCloud() {
-            if (localChanges.length === 0) {
-                showToast('✅ No local changes to sync');
+        // ==================== FORM HANDLING ====================
+        document.getElementById('addItemForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const id = document.getElementById('itemId').value;
+            const name = document.getElementById('itemName').value.trim();
+            const category = document.getElementById('itemCategory').value;
+            const code = document.getElementById('itemCode').value.trim();
+            const quantity = parseInt(document.getElementById('itemQuantity').value) || 0;
+            const notes = document.getElementById('itemNotes').value.trim();
+            
+            if (!name || !category || !code) {
+                showToast('⚠️ Fill all required fields', 'warning');
                 return;
             }
             
-            showToast('🔄 Syncing local changes to cloud...');
+            const item = {
+                id: id || undefined,
+                name: name,
+                category: category,
+                code: code,
+                quantity: quantity,
+                notes: notes || null,
+                photo_url: capturedPhoto || null
+            };
             
-            try {
-                // Switch to online mode
-                await connectToOnlineMode();
-                
-                // Sync each change
-                for (const change of localChanges) {
-                    if (change.action === 'delete') {
-                        await fetch(`${API_BASE}/inventory?id=${change.id}`, {
-                            method: 'DELETE'
-                        });
-                    } else if (change.action === 'create' || change.action === 'update') {
-                        await fetch(`${API_BASE}/inventory${change.id ? `?id=${change.id}` : ''}`, {
-                            method: change.id ? 'PUT' : 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(change)
-                        });
-                    }
-                }
-                
-                // Clear local changes
-                localChanges = [];
-                showToast('✅ All local changes synced to cloud!');
-                loadData();
-                
-            } catch (error) {
-                console.log('Sync failed:', error);
-                showToast('⚠️ Sync failed, changes remain local');
-            }
+            saveItem(item);
+            resetForm();
+        });
+        
+        function resetForm() {
+            document.getElementById('itemId').value = '';
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemCategory').value = '';
+            document.getElementById('itemCode').value = '';
+            document.getElementById('itemQuantity').value = '1';
+            document.getElementById('itemNotes').value = '';
+            
+            capturedPhoto = null;
+            const preview = document.getElementById('photoPreview');
+            preview.src = '';
+            preview.style.display = 'none';
+            document.getElementById('cancelPhotoBtn').style.display = 'none';
+            
+            document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus"></i> Add New Item';
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus-circle"></i> Add Item';
+            document.getElementById('clearFormBtn').style.display = 'none';
         }
         
         // ==================== SHOW ITEMS ====================
@@ -1502,12 +1444,12 @@
                         <div class="item-details">
                             <h3>${item.name}</h3>
                             <p><i class="fas fa-tag"></i> ${item.code} | <i class="fas fa-folder"></i> ${item.category}</p>
-                            ${item.notes ? `<p class="item-notes"><i class="fas fa-sticky-note"></i> ${item.notes}</p>` : ''}
+                            ${item.notes ? `<p class="item-notes"><i class="fas fa-sticky-note"></i> ${item.notes.substring(0, 50)}${item.notes.length > 50 ? '...' : ''}</p>` : ''}
                         </div>
                     </div>
                     <div class="item-meta">
                         <div class="item-quantity ${quantityClass}">${item.quantity}</div>
-                        ${hasPhoto ? '<div class="item-photo-indicator"><i class="fas fa-paperclip"></i> Has Photo</div>' : ''}
+                        ${hasPhoto ? '<div class="item-photo-indicator"><i class="fas fa-paperclip"></i> Photo</div>' : ''}
                     </div>
                     <div class="item-actions">
                         ${hasPhoto ? `<button class="action-btn view-btn" onclick="viewPhoto('${item.photo_url}')"><i class="fas fa-eye"></i></button>` : ''}
@@ -1523,7 +1465,6 @@
             });
         }
         
-        // ==================== EDIT ITEM ====================
         function editItem(id) {
             const item = inventory.find(i => i.id == id);
             if (!item) return;
@@ -1539,62 +1480,18 @@
                 capturedPhoto = item.photo_url;
                 const preview = document.getElementById('photoPreview');
                 preview.src = item.photo_url;
-                preview.classList.add('visible');
-                document.getElementById('cancelPhotoBtn').classList.add('visible');
+                preview.style.display = 'block';
+                document.getElementById('cancelPhotoBtn').style.display = 'flex';
             }
             
             document.getElementById('formTitle').innerHTML = '<i class="fas fa-edit"></i> Edit Item';
             document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Update Item';
-            document.getElementById('clearFormBtn').style.display = 'block';
-        }
-        
-        // ==================== FORM SUBMIT ====================
-        document.getElementById('addItemForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+            document.getElementById('clearFormBtn').style.display = 'flex';
             
-            const id = document.getElementById('itemId').value;
-            const name = document.getElementById('itemName').value.trim();
-            const category = document.getElementById('itemCategory').value;
-            const code = document.getElementById('itemCode').value.trim();
-            const quantity = parseInt(document.getElementById('itemQuantity').value) || 0;
-            const notes = document.getElementById('itemNotes').value.trim();
-            
-            if (!name || !category || !code) {
-                showToast('⚠️ Please fill all required fields', 'warning');
-                return;
+            // Scroll to form on mobile
+            if (window.innerWidth < 768) {
+                document.querySelector('.inventory-form').scrollIntoView({ behavior: 'smooth' });
             }
-            
-            const item = {
-                id: id || null,
-                name: name,
-                category: category,
-                code: code,
-                quantity: quantity,
-                notes: notes,
-                photo: capturedPhoto
-            };
-            
-            saveItem(item);
-            resetForm();
-        });
-        
-        // ==================== RESET FORM ====================
-        function resetForm() {
-            document.getElementById('itemId').value = '';
-            document.getElementById('itemName').value = '';
-            document.getElementById('itemCategory').value = '';
-            document.getElementById('itemCode').value = '';
-            document.getElementById('itemQuantity').value = '1';
-            document.getElementById('itemNotes').value = '';
-            
-            capturedPhoto = null;
-            document.getElementById('photoPreview').src = '';
-            document.getElementById('photoPreview').classList.remove('visible');
-            document.getElementById('cancelPhotoBtn').classList.remove('visible');
-            
-            document.getElementById('formTitle').innerHTML = '<i class="fas fa-plus"></i> Add New Item';
-            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus-circle"></i> Add Item';
-            document.getElementById('clearFormBtn').style.display = 'none';
         }
         
         // ==================== UPDATE NUMBERS ====================
@@ -1610,16 +1507,39 @@
         
         // ==================== VIEW PHOTO ====================
         function viewPhoto(photoUrl) {
-            const modal = document.getElementById('attachmentModal');
-            const body = document.getElementById('attachmentModalBody');
+            if (!photoUrl) return;
             
-            if (photoUrl) {
-                body.innerHTML = `
-                    <img src="${photoUrl}" class="attachment-image" alt="Item photo">
-                `;
-            }
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                background: rgba(0,0,0,0.9);
+                z-index: 2000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            `;
             
-            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div style="max-width: 100%; max-height: 100%;">
+                    <img src="${photoUrl}" style="max-width: 100%; max-height: 90vh; border-radius: 8px;">
+                </div>
+                <button onclick="this.parentElement.remove()" style="
+                    position: absolute;
+                    top: 20px; right: 20px;
+                    background: #ef4444;
+                    border: none;
+                    color: white;
+                    width: 40px; height: 40px;
+                    border-radius: 50%;
+                    font-size: 20px;
+                    cursor: pointer;
+                ">×</button>
+            `;
+            
+            document.body.appendChild(modal);
         }
         
         // ==================== SETUP BUTTONS ====================
@@ -1629,16 +1549,23 @@
             document.getElementById('localBtn').addEventListener('click', useLocalStorage);
             
             // Sync button
-            document.getElementById('syncLocalBtn').addEventListener('click', syncLocalToCloud);
+            document.getElementById('syncLocalBtn').addEventListener('click', async function() {
+                showToast('🔄 Syncing to cloud...');
+                await connectToOnlineMode();
+            });
             
             // Form buttons
             document.getElementById('clearFormBtn').addEventListener('click', resetForm);
             
             // Quantity buttons
-            document.getElementById('minus5Btn').addEventListener('click', () => adjustQuantity(-5));
-            document.getElementById('minus1Btn').addEventListener('click', () => adjustQuantity(-1));
-            document.getElementById('plus1Btn').addEventListener('click', () => adjustQuantity(1));
-            document.getElementById('plus5Btn').addEventListener('click', () => adjustQuantity(5));
+            ['minus5Btn', 'minus1Btn', 'plus1Btn', 'plus5Btn'].forEach(id => {
+                document.getElementById(id).addEventListener('click', function() {
+                    const change = parseInt(this.textContent);
+                    const input = document.getElementById('itemQuantity');
+                    const current = parseInt(input.value) || 0;
+                    input.value = Math.max(0, current + change);
+                });
+            });
             
             // Photo buttons
             document.getElementById('cameraBtn').addEventListener('click', () => {
@@ -1649,9 +1576,10 @@
             });
             document.getElementById('cancelPhotoBtn').addEventListener('click', () => {
                 capturedPhoto = null;
-                document.getElementById('photoPreview').src = '';
-                document.getElementById('photoPreview').classList.remove('visible');
-                document.getElementById('cancelPhotoBtn').classList.remove('visible');
+                const preview = document.getElementById('photoPreview');
+                preview.src = '';
+                preview.style.display = 'none';
+                document.getElementById('cancelPhotoBtn').style.display = 'none';
             });
             
             document.getElementById('mobileCameraInput').addEventListener('change', function(e) {
@@ -1665,25 +1593,9 @@
             // Other buttons
             document.getElementById('refreshBtn').addEventListener('click', loadData);
             document.getElementById('exportBtn').addEventListener('click', exportData);
-            document.getElementById('closeModalBtn').addEventListener('click', () => {
-                document.getElementById('attachmentModal').style.display = 'none';
-            });
-            
-            // Close modal when clicking outside
-            document.getElementById('attachmentModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.style.display = 'none';
-                }
-            });
         }
         
         // ==================== HELPER FUNCTIONS ====================
-        function adjustQuantity(change) {
-            const input = document.getElementById('itemQuantity');
-            const current = parseInt(input.value) || 0;
-            input.value = Math.max(0, current + change);
-        }
-        
         function handlePhotoUpload(file) {
             if (!file) return;
             
@@ -1695,9 +1607,10 @@
             const reader = new FileReader();
             reader.onload = function(e) {
                 capturedPhoto = e.target.result;
-                document.getElementById('photoPreview').src = capturedPhoto;
-                document.getElementById('photoPreview').classList.add('visible');
-                document.getElementById('cancelPhotoBtn').classList.add('visible');
+                const preview = document.getElementById('photoPreview');
+                preview.src = capturedPhoto;
+                preview.style.display = 'block';
+                document.getElementById('cancelPhotoBtn').style.display = 'flex';
                 showToast('✅ Photo added');
             };
             reader.readAsDataURL(file);
@@ -1711,9 +1624,7 @@
             
             const data = {
                 exportDate: new Date().toISOString(),
-                inventory: inventory,
-                localChanges: localChanges,
-                isOnline: isOnline
+                inventory: inventory
             };
             
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1730,7 +1641,6 @@
         }
         
         function showToast(message, type = 'success') {
-            // Remove existing toast
             const existing = document.querySelector('.toast');
             if (existing) existing.remove();
             
@@ -1739,18 +1649,18 @@
             toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> <span>${message}</span>`;
             document.body.appendChild(toast);
             
-            setTimeout(() => {
-                toast.remove();
-            }, 3000);
+            setTimeout(() => toast.remove(), 3000);
         }
         
         // ==================== FILTER AND SORT ====================
         document.getElementById('categoryFilter').addEventListener('change', function() {
-            showToast(`Filter: ${this.value}`);
+            // Filter logic here
+            showToast(`Filtered: ${this.value}`);
         });
         
         document.getElementById('sortFilter').addEventListener('change', function() {
-            showToast(`Sort: ${this.value}`);
+            // Sort logic here
+            showToast(`Sorted by: ${this.value}`);
         });
     </script>
 </body>
