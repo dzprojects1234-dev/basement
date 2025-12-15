@@ -1,5 +1,5 @@
 const CONFIG = {
-    supabaseUrl: process.env.SUPABASE_URL || "",
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || "",
-    offlineMode: true  // Start with offline
+  // Your Worker URL from above
+  apiUrl: "https://withered-star-d658alamak.dz-projects1234.workers.dev/api",
+  mode: "online"
 };
