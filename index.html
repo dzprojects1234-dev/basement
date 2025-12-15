@@ -6,8 +6,44 @@
     <title>Basement Supply Inventory Tracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Load Supabase credentials from GitHub -->
+    <!-- Load configuration -->
     <script src="config.js"></script>
+    
+    <!-- CHECK LOGIN FIRST -->
+    <script>
+        // ==================== CHECK LOGIN ====================
+        (function() {
+            const savedLogin = localStorage.getItem('inventory_login');
+            
+            if (!savedLogin) {
+                // Not logged in, redirect to login
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                const loginData = JSON.parse(savedLogin);
+                const now = Date.now();
+                
+                // Check if expired
+                if (now > loginData.expires) {
+                    localStorage.removeItem('inventory_login');
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                // User is logged in, show welcome
+                console.log(`Welcome ${loginData.user}!`);
+                
+                // Add logout button to header later
+                window.currentUser = loginData.user;
+                
+            } catch (e) {
+                localStorage.removeItem('inventory_login');
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
     
     <style>
         /* ==================== ALL YOUR CSS ==================== */
@@ -66,12 +102,17 @@
             gap: 20px;
         }
 
+        .header-left {
+            flex: 1;
+        }
+
         h1 {
             font-size: 28px;
             color: var(--light);
             display: flex;
             align-items: center;
             gap: 15px;
+            margin-bottom: 5px;
         }
 
         h1 i {
@@ -82,7 +123,47 @@
         .subtitle {
             color: var(--dark-text-secondary);
             font-size: 16px;
-            margin-top: 5px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-badge {
+            background: var(--dark-bg);
+            border: 1px solid var(--dark-border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--light);
+        }
+
+        .user-badge i {
+            color: var(--primary);
+        }
+
+        .logout-btn {
+            background: transparent;
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: var(--danger);
+            color: white;
         }
 
         .cloud-status {
@@ -899,13 +980,22 @@
     <div class="container" id="appContainer" style="display: none;">
         <!-- Header -->
         <header>
-            <div>
+            <div class="header-left">
                 <h1><i class="fas fa-boxes"></i> Basement Supply Inventory Tracker</h1>
                 <p class="subtitle">Secure shared inventory with team</p>
             </div>
-            <div class="cloud-status" id="cloudStatus">
-                <i class="fas fa-cloud"></i>
-                <span id="statusText">Checking connection...</span>
+            <div class="user-info">
+                <div class="user-badge" id="userBadge">
+                    <i class="fas fa-user"></i>
+                    <span id="usernameDisplay">Admin</span>
+                </div>
+                <button class="logout-btn" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+                <div class="cloud-status" id="cloudStatus">
+                    <i class="fas fa-cloud"></i>
+                    <span id="statusText">Checking connection...</span>
+                </div>
             </div>
         </header>
 
@@ -964,6 +1054,9 @@
                     </button>
                     <button class="sync-btn warning" id="exportBtn">
                         <i class="fas fa-download"></i> Export Backup
+                    </button>
+                    <button class="sync-btn" id="syncLocalBtn" style="display: none;">
+                        <i class="fas fa-cloud-upload"></i> Sync to Cloud
                     </button>
                 </div>
             </div>
@@ -1069,73 +1162,106 @@
         </footer>
     </div>
 
-    <!-- Supabase Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- No more Supabase JS - using Worker instead -->
     
     <script>
-        // ==================== SIMPLE SETUP ====================
-        // These will be filled by GitHub
-        const SUPABASE_URL = window.SUPABASE_URL || '';
-        const SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY || '';
+        // ==================== LOGOUT FUNCTION ====================
+        function setupLogout() {
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                if (confirm('Are you sure you want to logout?')) {
+                    localStorage.removeItem('inventory_login');
+                    window.location.href = 'login.html';
+                }
+            });
+            
+            // Show current user
+            const savedLogin = localStorage.getItem('inventory_login');
+            if (savedLogin) {
+                try {
+                    const loginData = JSON.parse(savedLogin);
+                    document.getElementById('usernameDisplay').textContent = loginData.user;
+                } catch (e) {
+                    // Ignore
+                }
+            }
+        }
+        
+        // ==================== CONFIGURATION ====================
+        // Get config from config.js (loaded in head)
+        const API_BASE = window.CONFIG?.apiUrl || 'https://withered-star-d658alamak.dz-projects1234.workers.dev/api';
         
         // App variables
-        let supabase = null;
         let inventory = [];
         let capturedPhoto = null;
         let isOnline = false;
+        let localChanges = []; // Track local changes to sync later
         
         // ==================== START APP ====================
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if we have Supabase info from GitHub
-            if (SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL.includes('supabase.co')) {
-                // Try to connect to Supabase
-                connectToSupabase();
-            } else {
-                // No Supabase, use local storage
-                setTimeout(() => {
-                    document.getElementById('loginModal').style.display = 'flex';
-                    document.getElementById('statusText').textContent = 'No cloud connection';
-                }, 500);
-            }
+            // Setup logout button
+            setupLogout();
             
+            // Show login modal first
+            document.getElementById('loginModal').style.display = 'flex';
             setupButtons();
+            
+            // Auto-check if online mode works
+            checkOnlineConnection();
         });
         
-        // ==================== CONNECT TO SUPABASE ====================
-        async function connectToSupabase() {
+        // ==================== CHECK ONLINE CONNECTION ====================
+        async function checkOnlineConnection() {
             try {
-                console.log('🔗 Connecting to Supabase...');
+                // Test Worker connection
+                const response = await fetch(`${API_BASE}/health`, {
+                    method: 'HEAD',
+                    timeout: 5000
+                }).catch(() => null);
                 
-                // Create connection
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                if (response && response.ok) {
+                    document.getElementById('statusText').textContent = 'Cloud available';
+                    showToast('✅ Cloud connection available');
+                } else {
+                    document.getElementById('statusText').textContent = 'Cloud unavailable';
+                }
+            } catch (error) {
+                console.log('Cloud check failed:', error);
+            }
+        }
+        
+        // ==================== CONNECT TO ONLINE MODE ====================
+        async function connectToOnlineMode() {
+            try {
+                console.log('🔗 Connecting to online mode via Worker...');
                 
-                // Test connection
-                const { data, error } = await supabase
-                    .from('inventory')
-                    .select('*')
-                    .limit(1);
+                // Test with actual data fetch
+                const response = await fetch(`${API_BASE}/inventory?limit=1`);
                 
-                if (error) throw error;
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Worker error: ${response.status} - ${errorText}`);
+                }
                 
-                // Success!
+                // Success - we're online!
                 isOnline = true;
                 document.getElementById('loginModal').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'flex';
                 document.getElementById('dataMode').textContent = 'Online Mode';
                 document.getElementById('statusText').textContent = 'Connected to Cloud';
                 document.getElementById('cloudStatus').classList.add('status-connected');
+                document.getElementById('syncLocalBtn').style.display = 'none';
                 
-                showToast('✅ Connected to Supabase database');
+                showToast('✅ Connected to cloud database');
                 loadData();
                 
             } catch (error) {
-                console.log('❌ Cannot connect to Supabase:', error);
-                showToast('⚠️ Using local storage');
+                console.log('❌ Cannot connect to cloud:', error);
+                showToast('⚠️ Failed to connect to cloud. Using offline mode.');
                 useLocalStorage();
             }
         }
         
-        // ==================== LOCAL STORAGE ====================
+        // ==================== LOCAL STORAGE MODE ====================
         function useLocalStorage() {
             isOnline = false;
             document.getElementById('loginModal').style.display = 'none';
@@ -1143,7 +1269,9 @@
             document.getElementById('dataMode').textContent = 'Local Mode';
             document.getElementById('statusText').textContent = 'Using Local Storage';
             document.getElementById('cloudStatus').classList.add('status-disconnected');
+            document.getElementById('syncLocalBtn').style.display = 'flex';
             
+            showToast('📱 Using local storage. Changes saved offline.');
             loadLocalData();
         }
         
@@ -1162,20 +1290,21 @@
         
         function saveLocalData() {
             localStorage.setItem('inventory_data', JSON.stringify(inventory));
+            localStorage.setItem('last_save', new Date().toISOString());
         }
         
         // ==================== LOAD DATA ====================
         async function loadData() {
-            if (isOnline && supabase) {
-                // Load from Supabase
+            if (isOnline) {
+                // Load from Cloud via Worker
                 try {
-                    const { data, error } = await supabase
-                        .from('inventory')
-                        .select('*')
-                        .order('created_at', { ascending: false });
+                    const response = await fetch(`${API_BASE}/inventory`);
                     
-                    if (error) throw error;
+                    if (!response.ok) {
+                        throw new Error(`Failed to load: ${response.status}`);
+                    }
                     
+                    const data = await response.json();
                     inventory = data || [];
                     showItems();
                     updateNumbers();
@@ -1185,7 +1314,8 @@
                     saveLocalData();
                     
                 } catch (error) {
-                    console.log('Error loading from Supabase:', error);
+                    console.log('Error loading from cloud:', error);
+                    showToast('⚠️ Cloud load failed, using local data');
                     loadLocalData();
                 }
             } else {
@@ -1196,56 +1326,52 @@
         
         // ==================== SAVE ITEM ====================
         async function saveItem(item) {
-            if (isOnline && supabase) {
+            if (isOnline) {
                 try {
-                    // Save to Supabase
-                    if (item.id && item.id > 1000) {
+                    let response;
+                    
+                    if (item.id) {
                         // Update existing item
-                        const { data, error } = await supabase
-                            .from('inventory')
-                            .update({
-                                name: item.name,
-                                category: item.category,
-                                code: item.code,
-                                quantity: item.quantity,
-                                notes: item.notes,
-                                photo_url: item.photo
-                            })
-                            .eq('id', item.id)
-                            .select();
-                        
-                        if (error) throw error;
+                        response = await fetch(`${API_BASE}/inventory?id=${item.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(item)
+                        });
                     } else {
                         // Add new item
-                        const { data, error } = await supabase
-                            .from('inventory')
-                            .insert([{
-                                name: item.name,
-                                category: item.category,
-                                code: item.code,
-                                quantity: item.quantity,
-                                notes: item.notes,
-                                photo_url: item.photo
-                            }])
-                            .select();
-                        
-                        if (error) throw error;
-                        
-                        if (data && data[0]) {
-                            item.id = data[0].id;
-                        }
+                        response = await fetch(`${API_BASE}/inventory`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(item)
+                        });
                     }
                     
+                    if (!response.ok) {
+                        throw new Error(`Save failed: ${response.status}`);
+                    }
+                    
+                    const savedItem = await response.json();
                     showToast('✅ Saved to cloud');
+                    
+                    // Reload data to get fresh from server
                     loadData();
                     
                 } catch (error) {
-                    console.log('Error saving to Supabase:', error);
+                    console.log('Error saving to cloud:', error);
+                    showToast('⚠️ Cloud save failed, saving locally');
+                    
+                    // Save locally and mark for sync later
                     saveToLocal(item);
+                    if (!localChanges.some(change => change.id === item.id)) {
+                        localChanges.push({...item, action: item.id ? 'update' : 'create'});
+                    }
                 }
             } else {
                 // Save to local storage
                 saveToLocal(item);
+                if (!localChanges.some(change => change.id === item.id)) {
+                    localChanges.push({...item, action: item.id ? 'update' : 'create'});
+                }
             }
         }
         
@@ -1256,7 +1382,8 @@
                     inventory[index] = item;
                 }
             } else {
-                item.id = Date.now();
+                item.id = Date.now(); // Local ID
+                item.created_at = new Date().toISOString();
                 inventory.push(item);
             }
             
@@ -1270,24 +1397,30 @@
         async function deleteItem(id) {
             if (!confirm('Delete this item?')) return;
             
-            if (isOnline && supabase) {
+            if (isOnline) {
                 try {
-                    const { error } = await supabase
-                        .from('inventory')
-                        .delete()
-                        .eq('id', id);
+                    const response = await fetch(`${API_BASE}/inventory?id=${id}`, {
+                        method: 'DELETE'
+                    });
                     
-                    if (error) throw error;
+                    if (!response.ok) {
+                        throw new Error(`Delete failed: ${response.status}`);
+                    }
                     
                     showToast('✅ Deleted from cloud');
                     loadData();
                     
                 } catch (error) {
-                    console.log('Error deleting from Supabase:', error);
+                    console.log('Error deleting from cloud:', error);
+                    showToast('⚠️ Cloud delete failed, deleting locally');
+                    
+                    // Delete locally and mark for sync
                     deleteFromLocal(id);
+                    localChanges.push({id, action: 'delete'});
                 }
             } else {
                 deleteFromLocal(id);
+                localChanges.push({id, action: 'delete'});
             }
         }
         
@@ -1297,6 +1430,45 @@
             showItems();
             updateNumbers();
             showToast('✅ Deleted locally');
+        }
+        
+        // ==================== SYNC LOCAL TO CLOUD ====================
+        async function syncLocalToCloud() {
+            if (localChanges.length === 0) {
+                showToast('✅ No local changes to sync');
+                return;
+            }
+            
+            showToast('🔄 Syncing local changes to cloud...');
+            
+            try {
+                // Switch to online mode
+                await connectToOnlineMode();
+                
+                // Sync each change
+                for (const change of localChanges) {
+                    if (change.action === 'delete') {
+                        await fetch(`${API_BASE}/inventory?id=${change.id}`, {
+                            method: 'DELETE'
+                        });
+                    } else if (change.action === 'create' || change.action === 'update') {
+                        await fetch(`${API_BASE}/inventory${change.id ? `?id=${change.id}` : ''}`, {
+                            method: change.id ? 'PUT' : 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(change)
+                        });
+                    }
+                }
+                
+                // Clear local changes
+                localChanges = [];
+                showToast('✅ All local changes synced to cloud!');
+                loadData();
+                
+            } catch (error) {
+                console.log('Sync failed:', error);
+                showToast('⚠️ Sync failed, changes remain local');
+            }
         }
         
         // ==================== SHOW ITEMS ====================
@@ -1453,15 +1625,11 @@
         // ==================== SETUP BUTTONS ====================
         function setupButtons() {
             // Login buttons
-            document.getElementById('connectBtn').addEventListener('click', () => {
-                if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-                    connectToSupabase();
-                } else {
-                    showToast('❌ No Supabase credentials available');
-                }
-            });
-            
+            document.getElementById('connectBtn').addEventListener('click', connectToOnlineMode);
             document.getElementById('localBtn').addEventListener('click', useLocalStorage);
+            
+            // Sync button
+            document.getElementById('syncLocalBtn').addEventListener('click', syncLocalToCloud);
             
             // Form buttons
             document.getElementById('clearFormBtn').addEventListener('click', resetForm);
@@ -1543,7 +1711,9 @@
             
             const data = {
                 exportDate: new Date().toISOString(),
-                inventory: inventory
+                inventory: inventory,
+                localChanges: localChanges,
+                isOnline: isOnline
             };
             
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -1576,16 +1746,12 @@
         
         // ==================== FILTER AND SORT ====================
         document.getElementById('categoryFilter').addEventListener('change', function() {
-            // Simple filter - in real app you would filter the displayed items
             showToast(`Filter: ${this.value}`);
         });
         
         document.getElementById('sortFilter').addEventListener('change', function() {
-            // Simple sort - in real app you would sort the inventory array
             showToast(`Sort: ${this.value}`);
         });
     </script>
 </body>
-
 </html>
-
