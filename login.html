@@ -147,12 +147,12 @@
         
         <div class="input-group">
             <label for="username">Username</label>
-            <input type="text" id="username" placeholder="Enter username" value="admin">
+            <input type="text" id="username" placeholder="Enter username">
         </div>
         
         <div class="input-group">
             <label for="password">Password</label>
-            <input type="password" id="password" placeholder="Enter password" value="password123">
+            <input type="password" id="password" placeholder="Enter password">
         </div>
         
         <button id="loginBtn">
@@ -160,13 +160,45 @@
         </button>
         
         <div class="info">
-            <p><i class="fas fa-info-circle"></i> Default login: admin / password123</p>
             <p><i class="fas fa-shield-alt"></i> Your data is stored securely</p>
+            <p><i class="fas fa-users"></i> Valid users: admin, ops</p>
         </div>
     </div>
     
     <script>
-        document.getElementById('loginBtn').addEventListener('click', function() {
+        // ==================== PASSWORD SETUP ====================
+        // INSTRUCTIONS:
+        // 1. Go to: https://emn178.github.io/online-tools/sha256.html
+        // 2. Type your password (example: toiletcleaner123)
+        // 3. Copy the hash (long string of letters/numbers)
+        // 4. Paste it below where it says "PASTE_HASH_HERE"
+        
+        const VALID_USERS = {
+            // Format: username: "hashed_password"
+            "admin": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f", // hash of "password123"
+            "ops": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4" // hash of "1234"
+            // Add more users like this:
+            // "username": "PASTE_HASH_HERE",
+        };
+
+        // Function to hash password using SHA-256
+        async function sha256(message) {
+            // Convert message to Uint8Array
+            const encoder = new TextEncoder();
+            const data = encoder.encode(message);
+            
+            // Generate hash
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            
+            // Convert to hex string
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            return hashHex;
+        }
+
+        // Login function
+        async function login() {
             const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value.trim();
             
@@ -175,24 +207,44 @@
                 return;
             }
             
-            // Simple authentication - in production, use proper auth
-            if (username === 'admin' && password === 'password123') {
+            // Check if username exists
+            if (!VALID_USERS.hasOwnProperty(username)) {
+                alert('Invalid username or password');
+                return;
+            }
+            
+            // Hash the entered password
+            const hashedPassword = await sha256(password);
+            
+            // Compare with stored hash
+            if (VALID_USERS[username] === hashedPassword) {
                 const loginData = {
                     user: username,
-                    expires: Date.now() + (7 * 24 * 60 * 60 * 1000) // 7 days
+                    expires: Date.now() + (7 * 24 * 60 * 60 * 1000), // 7 days
+                    timestamp: new Date().toISOString()
                 };
                 
                 localStorage.setItem('inventory_login', JSON.stringify(loginData));
                 window.location.href = 'index.html';
             } else {
-                alert('Invalid credentials. Try admin / password123');
+                alert('Invalid username or password');
             }
-        });
+        }
+
+        // Event listeners
+        document.getElementById('loginBtn').addEventListener('click', login);
         
         // Allow Enter key to submit
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                document.getElementById('loginBtn').click();
+                login();
+            }
+        });
+        
+        // Optional: Also trigger login with Enter in username field
+        document.getElementById('username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('password').focus();
             }
         });
     </script>
