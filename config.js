@@ -1,3 +1,6 @@
-// Auto-generated - Supabase credentials
-window.SUPABASE_URL = "https://mnaonxatuyafsuoiddiy.supabase.co";
-window.SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1uYW9ueGF0dXlhZnN1b2lkZGl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MzAzNjEsImV4cCI6MjA4MTMwNjM2MX0.YWhnZkZULrdwK2CHrEYq5_d-DRKo0shJflf2dkhcWQ0";
+// Configuration for Inventory App
+window.CONFIG = {
+    apiUrl: "https://withered-star-d658alamak.dz-projects1234.workers.dev/api",
+    appName: "Basement Supply Inventory",
+    version: "1.0.0"
+};
