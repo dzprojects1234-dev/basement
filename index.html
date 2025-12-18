@@ -915,6 +915,35 @@
             background: var(--warning) !important;
             color: white !important;
         }
+        
+        .test-btn {
+            background: var(--dark-bg);
+            border: 1px solid var(--info);
+            color: var(--info);
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .test-btn:hover {
+            background: var(--info);
+            color: white;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -959,6 +988,9 @@
                     <i class="fas fa-cloud"></i>
                     <span id="statusText">Checking...</span>
                 </div>
+                <button class="test-btn" id="testConnectionBtn" title="Test Connection">
+                    <i class="fas fa-bug"></i> Test
+                </button>
             </div>
         </header>
 
@@ -1193,37 +1225,51 @@
                 showToast('🔗 Connecting to cloud...');
                 console.log('Testing connection to Worker...');
                 
-                // Test multiple endpoints
-                const endpoints = [
-                    `${API_BASE}/health`,
-                    `${API_BASE}/inventory`,
-                    `${API_BASE}/inventory?limit=1`
-                ];
-                
-                let success = false;
-                
-                for (const endpoint of endpoints) {
-                    try {
-                        console.log('Testing endpoint:', endpoint);
-                        const response = await fetch(endpoint);
-                        console.log(`${endpoint} status:`, response.status);
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            console.log(`${endpoint} response:`, data);
-                            success = true;
-                            break;
-                        }
-                    } catch (e) {
-                        console.log(`${endpoint} error:`, e.message);
+                // First test if the worker is reachable
+                try {
+                    console.log('Testing health endpoint...');
+                    const healthResponse = await fetch(`${API_BASE}/health`);
+                    console.log('Health response status:', healthResponse.status);
+                    
+                    if (!healthResponse.ok) {
+                        throw new Error(`Health check failed: ${healthResponse.status}`);
                     }
+                    
+                    const healthData = await healthResponse.json();
+                    console.log('Health data:', healthData);
+                    
+                    if (healthData.supabaseConnected === false) {
+                        throw new Error('Supabase not connected in Worker');
+                    }
+                    
+                } catch (healthError) {
+                    console.log('Health check failed:', healthError);
+                    throw new Error('Cannot reach Cloudflare Worker');
                 }
                 
-                if (!success) {
-                    throw new Error('All endpoints failed');
+                // Then test if we can actually get data (but don't fail if empty)
+                try {
+                    console.log('Testing inventory endpoint...');
+                    const inventoryResponse = await fetch(`${API_BASE}/inventory?limit=1`, {
+                        signal: AbortSignal.timeout(5000)
+                    });
+                    console.log('Inventory response status:', inventoryResponse.status);
+                    
+                    if (!inventoryResponse.ok && inventoryResponse.status !== 404) {
+                        const errorText = await inventoryResponse.text();
+                        console.log('Inventory error:', errorText);
+                        // Don't throw - we'll continue anyway if health check passed
+                    } else if (inventoryResponse.ok) {
+                        const inventoryData = await inventoryResponse.json();
+                        console.log('Inventory test data:', inventoryData);
+                    }
+                    
+                } catch (inventoryError) {
+                    console.log('Inventory test warning (non-fatal):', inventoryError.message);
+                    // Continue anyway - the health check passed
                 }
                 
-                // Success
+                // SUCCESS - We're connected!
                 isOnline = true;
                 document.getElementById('loginModal').style.display = 'none';
                 document.getElementById('appContainer').style.display = 'flex';
@@ -1233,7 +1279,9 @@
                 document.getElementById('syncLocalBtn').style.display = 'none';
                 
                 showToast('✅ Connected to cloud database');
-                loadData();
+                
+                // Load data from cloud
+                await loadData();
                 
             } catch (error) {
                 console.log('Cannot connect to cloud:', error);
@@ -1284,7 +1332,9 @@
             if (isOnline) {
                 try {
                     console.log('Fetching from cloud:', `${API_BASE}/inventory`);
-                    const response = await fetch(`${API_BASE}/inventory`);
+                    const response = await fetch(`${API_BASE}/inventory`, {
+                        signal: AbortSignal.timeout(10000)
+                    });
                     console.log('Cloud response status:', response.status);
                     
                     if (!response.ok) {
@@ -1293,10 +1343,20 @@
                         throw new Error(`HTTP ${response.status}: ${errorText}`);
                     }
                     
-                    const data = await response.json();
-                    console.log('Cloud data received:', data);
+                    const text = await response.text();
+                    console.log('Cloud raw response (first 500 chars):', text.substring(0, 500));
                     
-                    // Handle Supabase response format
+                    let data;
+                    try {
+                        data = JSON.parse(text);
+                    } catch (parseError) {
+                        console.log('Failed to parse JSON:', parseError);
+                        throw new Error('Invalid JSON response from server');
+                    }
+                    
+                    console.log('Cloud parsed data:', data);
+                    
+                    // Handle different response formats
                     if (Array.isArray(data)) {
                         inventory = data;
                     } else if (data && Array.isArray(data.data)) {
@@ -1307,6 +1367,7 @@
                         inventory = [];
                     }
                     
+                    console.log('Inventory loaded, items:', inventory.length);
                     showItems();
                     updateNumbers();
                     showToast('✅ Loaded from cloud');
@@ -1364,7 +1425,6 @@
                     });
                     
                     console.log('Save response status:', response.status);
-                    console.log('Save response headers:', [...response.headers]);
                     
                     if (!response.ok) {
                         const errorText = await response.text();
@@ -1663,6 +1723,52 @@
             document.getElementById('connectBtn').addEventListener('click', connectToOnlineMode);
             document.getElementById('localBtn').addEventListener('click', useLocalStorage);
             
+            // Test connection button
+            document.getElementById('testConnectionBtn').addEventListener('click', async function() {
+                console.log('=== MANUAL CONNECTION TEST ===');
+                
+                // Test 1: Direct URL test
+                console.log('1. Testing Worker URL directly...');
+                try {
+                    const response = await fetch(`${API_BASE}/health`);
+                    console.log(`Health Status: ${response.status}`);
+                    const health = await response.json();
+                    console.log('Health Response:', health);
+                } catch (e) {
+                    console.log('Health test failed:', e.message);
+                }
+                
+                // Test 2: Inventory test
+                console.log('\n2. Testing inventory endpoint...');
+                try {
+                    const response = await fetch(`${API_BASE}/inventory`);
+                    console.log(`Inventory Status: ${response.status}`);
+                    const text = await response.text();
+                    console.log('Inventory Response length:', text.length);
+                    console.log('Inventory Response (first 300 chars):', text.substring(0, 300));
+                    
+                    if (text) {
+                        try {
+                            const data = JSON.parse(text);
+                            console.log('Parsed data type:', Array.isArray(data) ? 'Array' : typeof data);
+                            console.log('Number of items:', Array.isArray(data) ? data.length : 'Not an array');
+                        } catch (parseError) {
+                            console.log('Could not parse JSON:', parseError.message);
+                        }
+                    }
+                } catch (e) {
+                    console.log('Inventory test failed:', e.message);
+                }
+                
+                // Test 3: Current app state
+                console.log('\n3. Current app state:');
+                console.log('isOnline:', isOnline);
+                console.log('API_BASE:', API_BASE);
+                console.log('Inventory length:', inventory.length);
+                
+                alert('Check browser console for test results');
+            });
+            
             // Sync button
             document.getElementById('syncLocalBtn').addEventListener('click', async function() {
                 showToast('🔄 Syncing to cloud...');
@@ -1780,38 +1886,29 @@
             return div.innerHTML;
         }
         
-        // ==================== TEST FUNCTION ====================
-        // Add this to test your connection
-        window.testConnection = async function() {
-            console.log('=== Testing Connection ===');
-            console.log('API_BASE:', API_BASE);
+        // ==================== AUTO-FORCE ONLINE FOR TESTING ====================
+        // Remove this block after testing
+        setTimeout(async () => {
+            console.log('=== AUTO-TESTING CONNECTION ===');
+            console.log('API Base:', API_BASE);
             
-            const endpoints = [
-                '/health',
-                '/inventory',
-                '/inventory?limit=1'
-            ];
-            
-            for (const endpoint of endpoints) {
-                try {
-                    console.log(`\nTesting: ${endpoint}`);
-                    const response = await fetch(API_BASE + endpoint);
-                    console.log(`Status: ${response.status}`);
-                    const text = await response.text();
-                    console.log(`Response:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
-                } catch (error) {
-                    console.log(`Error: ${error.message}`);
+            // Test if we can connect
+            try {
+                const healthResponse = await fetch(`${API_BASE}/health`);
+                if (healthResponse.ok) {
+                    const healthData = await healthResponse.json();
+                    console.log('Auto-test: Health check OK', healthData);
+                    
+                    // If health check passes, auto-connect to online mode
+                    if (document.getElementById('loginModal').style.display === 'flex') {
+                        console.log('Auto-connecting to online mode...');
+                        await connectToOnlineMode();
+                    }
                 }
+            } catch (error) {
+                console.log('Auto-test: Cannot connect, staying in login modal');
             }
-            
-            console.log('=== Test Complete ===');
-            alert('Check browser console for connection test results');
-        };
-        
-        // Auto-run test on load (optional)
-        setTimeout(() => {
-            console.log('App loaded. Run testConnection() to test endpoints.');
-        }, 1000);
+        }, 500);
     </script>
 </body>
 </html>
