@@ -16,15 +16,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Create config file with Supabase info
+      - name: Create config file
         run: |
-          echo '// Auto-generated - Supabase credentials' > config.js
-          echo 'window.SUPABASE_URL = "'${{ secrets.SUPABASE_URL }}'";' >> config.js
-          echo 'window.SUPABASE_ANON_KEY = "'${{ secrets.SUPABASE_ANON_KEY }}'";' >> config.js
-          echo '✅ Supabase info added to config.js'
+          echo '// Configuration for Inventory App' > config.js
+          echo 'window.CONFIG = {' >> config.js
+          echo '    apiUrl: "https://withered-star-d658alamak.dz-projects1234.workers.dev/api",' >> config.js
+          echo '    appName: "Basement Supply Inventory",' >> config.js
+          echo '    version: "1.0.0"' >> config.js
+          echo '};' >> config.js
+          echo '✅ Config file created'
       
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./  # This needs a value, e.g., "./dist" or "./build" or "./" for current directory
+          publish_dir: ./
