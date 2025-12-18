@@ -1309,10 +1309,22 @@
             if (saved) {
                 try {
                     inventory = JSON.parse(saved);
+                    
+                    // Clean up any temporary photo flags
+                    inventory.forEach(item => {
+                        if (item.photo_needs_refresh) {
+                            delete item.photo_needs_refresh;
+                        }
+                    });
+                    
                     showItems();
                     updateNumbers();
                     showToast('✅ Loaded from local storage');
+                    
+                    console.log('Loaded from local storage:', inventory.length, 'items');
+                    
                 } catch (e) {
+                    console.log('Local data corrupted:', e);
                     inventory = [];
                     showToast('⚠️ Local data corrupted');
                 }
@@ -1322,7 +1334,27 @@
         }
         
         function saveLocalData() {
-            localStorage.setItem('inventory_data', JSON.stringify(inventory));
+            try {
+                // Remove large base64 photos before saving to localStorage
+                const dataForStorage = inventory.map(item => {
+                    // Create a clean copy
+                    const itemCopy = { ...item };
+                    
+                    // If it's a base64 photo (not a URL), don't save it locally
+                    if (itemCopy.photo_url && itemCopy.photo_url.startsWith('data:image')) {
+                        itemCopy.photo_url = null; // Remove the base64 data
+                        itemCopy.has_photo = true; // Mark that there was a photo
+                    }
+                    
+                    return itemCopy;
+                });
+                
+                localStorage.setItem('inventory_data', JSON.stringify(dataForStorage));
+                console.log('Local backup saved (photos optimized):', dataForStorage.length, 'items');
+            } catch (error) {
+                console.log('Local storage backup failed (non-critical):', error.message);
+                // Don't show error - local backup is optional
+            }
         }
         
         // ==================== LOAD DATA ====================
@@ -1344,7 +1376,7 @@
                     }
                     
                     const text = await response.text();
-                    console.log('Cloud raw response (first 500 chars):', text.substring(0, 500));
+                    console.log('Cloud raw response length:', text.length, 'characters');
                     
                     let data;
                     try {
@@ -1354,7 +1386,7 @@
                         throw new Error('Invalid JSON response from server');
                     }
                     
-                    console.log('Cloud parsed data:', data);
+                    console.log('Cloud parsed data type:', Array.isArray(data) ? 'Array' : typeof data);
                     
                     // Handle different response formats
                     if (Array.isArray(data)) {
@@ -1367,18 +1399,34 @@
                         inventory = [];
                     }
                     
-                    console.log('Inventory loaded, items:', inventory.length);
+                    console.log('Inventory loaded from cloud, items:', inventory.length);
                     showItems();
                     updateNumbers();
                     showToast('✅ Loaded from cloud');
                     
-                    // Save backup locally
-                    saveLocalData();
+                    // Try to save backup locally (without large photos)
+                    try {
+                        saveLocalData();
+                    } catch (storageError) {
+                        console.log('Local backup skipped:', storageError.message);
+                        // This is OK - we still have cloud data
+                    }
                     
                 } catch (error) {
                     console.log('Cloud load error:', error);
-                    showToast('⚠️ Cloud load failed, using local data');
-                    loadLocalData();
+                    
+                    // Check if it's just a storage quota error (not a real cloud error)
+                    if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
+                        // This is just a local storage issue, cloud data was loaded successfully
+                        // Show items anyway
+                        showItems();
+                        updateNumbers();
+                        showToast('✅ Loaded from cloud (local backup skipped)');
+                    } else {
+                        // Real cloud error - fall back to local data
+                        showToast('⚠️ Cloud load failed, using local data');
+                        loadLocalData();
+                    }
                 }
             } else {
                 loadLocalData();
@@ -1607,7 +1655,7 @@
             filteredItems.forEach(item => {
                 const quantityClass = item.quantity <= 5 ? 'critical-stock' : 
                                     item.quantity <= 10 ? 'low-stock' : '';
-                const hasPhoto = item.photo_url ? true : false;
+                const hasPhoto = item.photo_url || item.has_photo ? true : false;
                 
                 const div = document.createElement('div');
                 div.className = 'inventory-item';
@@ -1627,7 +1675,7 @@
                         ${hasPhoto ? '<div class="item-photo-indicator"><i class="fas fa-paperclip"></i> Photo</div>' : ''}
                     </div>
                     <div class="item-actions">
-                        ${hasPhoto ? `<button class="action-btn view-btn" onclick="viewPhoto('${escapeHtml(item.photo_url)}')"><i class="fas fa-eye"></i></button>` : ''}
+                        ${item.photo_url ? `<button class="action-btn view-btn" onclick="viewPhoto('${escapeHtml(item.photo_url)}')"><i class="fas fa-eye"></i></button>` : ''}
                         <button class="action-btn edit-btn" onclick="editItem(${item.id})">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -1650,6 +1698,11 @@
             document.getElementById('itemCode').value = item.code;
             document.getElementById('itemQuantity').value = item.quantity;
             document.getElementById('itemNotes').value = item.notes || '';
+            
+            // If item has photo but it was removed from local storage, warn user
+            if (item.has_photo && !item.photo_url) {
+                showToast('ℹ️ Photo exists in cloud but not loaded locally', 'info');
+            }
             
             if (item.photo_url) {
                 capturedPhoto = item.photo_url;
@@ -1744,8 +1797,7 @@
                     const response = await fetch(`${API_BASE}/inventory`);
                     console.log(`Inventory Status: ${response.status}`);
                     const text = await response.text();
-                    console.log('Inventory Response length:', text.length);
-                    console.log('Inventory Response (first 300 chars):', text.substring(0, 300));
+                    console.log('Inventory Response length:', text.length, 'characters');
                     
                     if (text) {
                         try {
