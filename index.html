@@ -10,7 +10,6 @@
     <script src="config.js"></script>
     
     <style>
-        /* ==================== CSS RESET & VARIABLES ==================== */
         * {
             margin: 0;
             padding: 0;
@@ -52,7 +51,6 @@
             min-height: 95vh;
         }
 
-        /* ==================== HEADER ==================== */
         header {
             background: var(--dark-card);
             border-radius: 12px;
@@ -224,7 +222,6 @@
             color: var(--warning);
         }
 
-        /* ==================== LOGIN MODAL ==================== */
         #loginModal {
             position: fixed;
             top: 0;
@@ -326,7 +323,6 @@
             border: 1px solid var(--dark-border);
         }
 
-        /* ==================== MAIN CONTENT ==================== */
         .inventory-container {
             display: grid;
             grid-template-columns: 1fr;
@@ -379,7 +375,6 @@
             color: var(--primary);
         }
 
-        /* ==================== FILTER CONTROLS ==================== */
         .filter-controls {
             display: flex;
             flex-direction: column;
@@ -413,7 +408,6 @@
             }
         }
 
-        /* ==================== INVENTORY ITEMS LIST ==================== */
         #inventoryItems {
             flex: 1;
             overflow-y: auto;
@@ -584,7 +578,6 @@
             }
         }
 
-        /* ==================== FORM STYLES ==================== */
         .form-title {
             display: flex;
             flex-direction: column;
@@ -649,7 +642,6 @@
             transition: all 0.3s ease;
         }
 
-        /* Quantity Controls */
         .quantity-controls {
             display: flex;
             align-items: center;
@@ -671,7 +663,6 @@
             min-width: 50px;
         }
 
-        /* Photo Section */
         .photo-controls {
             display: flex;
             flex-direction: column;
@@ -722,7 +713,6 @@
             font-size: 14px;
         }
 
-        /* Buttons */
         .add-btn {
             background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
@@ -770,7 +760,6 @@
             font-size: 14px;
         }
 
-        /* ==================== SUMMARY SECTION ==================== */
         .summary {
             display: grid;
             grid-template-columns: 1fr;
@@ -821,7 +810,6 @@
             }
         }
 
-        /* ==================== FOOTER ==================== */
         footer {
             text-align: center;
             padding: 15px;
@@ -838,7 +826,6 @@
             }
         }
 
-        /* ==================== TOAST NOTIFICATIONS ==================== */
         .toast {
             position: fixed;
             bottom: 15px;
@@ -864,7 +851,6 @@
             }
         }
 
-        /* ==================== UTILITY CLASSES ==================== */
         .mobile-only {
             display: block;
         }
@@ -891,7 +877,6 @@
             color: var(--dark-text-secondary);
         }
 
-        /* ==================== SCROLLBAR ==================== */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -907,6 +892,28 @@
 
         ::-webkit-scrollbar-thumb:hover {
             background: var(--primary);
+        }
+        
+        .critical-stock {
+            border-color: var(--danger) !important;
+            color: var(--danger) !important;
+            background: rgba(239, 68, 68, 0.1) !important;
+        }
+        
+        .low-stock {
+            border-color: var(--warning) !important;
+            color: var(--warning) !important;
+            background: rgba(245, 158, 11, 0.1) !important;
+        }
+        
+        .warning {
+            border-color: var(--warning) !important;
+            color: var(--warning) !important;
+        }
+        
+        .warning:hover {
+            background: var(--warning) !important;
+            color: white !important;
         }
     </style>
 </head>
@@ -1055,7 +1062,7 @@
                     <div class="form-group">
                         <label>Item Photo (Optional)</label>
                         <div class="photo-section">
-                            <img id="photoPreview" class="photo-preview" alt="Photo preview" style="display: none;">
+                            <img id="photoPreview" class="photo-preview" alt="Photo preview" style="display: none; max-width: 100%; max-height: 200px; border-radius: 8px; margin-bottom: 10px;">
                             <div class="photo-controls">
                                 <div class="camera-controls">
                                     <button type="button" class="photo-btn" id="cameraBtn">
@@ -1110,7 +1117,6 @@
         let inventory = [];
         let capturedPhoto = null;
         let isOnline = false;
-        let localChanges = [];
         
         // ==================== CHECK LOGIN ====================
         (function() {
@@ -1161,14 +1167,23 @@
         // ==================== CHECK ONLINE CONNECTION ====================
         async function checkOnlineConnection() {
             try {
+                console.log('Testing connection to:', `${API_BASE}/health`);
                 const response = await fetch(`${API_BASE}/health`);
+                console.log('Health check response:', response.status);
+                
                 if (response && response.ok) {
+                    const data = await response.json();
+                    console.log('Health check data:', data);
                     document.getElementById('statusText').textContent = 'Cloud available';
+                    return true;
                 } else {
                     document.getElementById('statusText').textContent = 'Cloud unavailable';
+                    return false;
                 }
             } catch (error) {
-                console.log('Cloud check:', error.message);
+                console.log('Cloud check failed:', error.message);
+                document.getElementById('statusText').textContent = 'Cloud unavailable';
+                return false;
             }
         }
         
@@ -1176,10 +1191,36 @@
         async function connectToOnlineMode() {
             try {
                 showToast('🔗 Connecting to cloud...');
-                const response = await fetch(`${API_BASE}/inventory?limit=1`);
+                console.log('Testing connection to Worker...');
                 
-                if (!response.ok) {
-                    throw new Error(`Worker error: ${response.status}`);
+                // Test multiple endpoints
+                const endpoints = [
+                    `${API_BASE}/health`,
+                    `${API_BASE}/inventory`,
+                    `${API_BASE}/inventory?limit=1`
+                ];
+                
+                let success = false;
+                
+                for (const endpoint of endpoints) {
+                    try {
+                        console.log('Testing endpoint:', endpoint);
+                        const response = await fetch(endpoint);
+                        console.log(`${endpoint} status:`, response.status);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log(`${endpoint} response:`, data);
+                            success = true;
+                            break;
+                        }
+                    } catch (e) {
+                        console.log(`${endpoint} error:`, e.message);
+                    }
+                }
+                
+                if (!success) {
+                    throw new Error('All endpoints failed');
                 }
                 
                 // Success
@@ -1222,9 +1263,13 @@
                     inventory = JSON.parse(saved);
                     showItems();
                     updateNumbers();
+                    showToast('✅ Loaded from local storage');
                 } catch (e) {
                     inventory = [];
+                    showToast('⚠️ Local data corrupted');
                 }
+            } else {
+                showToast('📝 No local data found');
             }
         }
         
@@ -1234,13 +1279,34 @@
         
         // ==================== LOAD DATA ====================
         async function loadData() {
+            console.log('loadData called, isOnline:', isOnline);
+            
             if (isOnline) {
                 try {
+                    console.log('Fetching from cloud:', `${API_BASE}/inventory`);
                     const response = await fetch(`${API_BASE}/inventory`);
-                    if (!response.ok) throw new Error(`Failed: ${response.status}`);
+                    console.log('Cloud response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.log('Cloud error response:', errorText);
+                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                    }
                     
                     const data = await response.json();
-                    inventory = data || [];
+                    console.log('Cloud data received:', data);
+                    
+                    // Handle Supabase response format
+                    if (Array.isArray(data)) {
+                        inventory = data;
+                    } else if (data && Array.isArray(data.data)) {
+                        inventory = data.data;
+                    } else if (data && data.error) {
+                        throw new Error(data.error);
+                    } else {
+                        inventory = [];
+                    }
+                    
                     showItems();
                     updateNumbers();
                     showToast('✅ Loaded from cloud');
@@ -1260,6 +1326,8 @@
         
         // ==================== SAVE ITEM ====================
         async function saveItem(item) {
+            console.log('Saving item:', item);
+            
             // Prepare data for Supabase
             const supabaseData = {
                 name: item.name,
@@ -1270,38 +1338,45 @@
                 photo_url: item.photo_url || null
             };
             
-            // Add ID only if updating
-            if (item.id && item.id !== 'undefined') {
-                supabaseData.id = item.id;
-            }
-            
             if (isOnline) {
                 try {
-                    let response;
+                    let url, method;
                     
                     if (item.id && item.id !== 'undefined') {
                         // Update
-                        response = await fetch(`${API_BASE}/inventory?id=${item.id}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(supabaseData)
-                        });
+                        url = `${API_BASE}/inventory?id=${item.id}`;
+                        method = 'PUT';
+                        console.log('Updating item at:', url);
                     } else {
                         // Create
-                        response = await fetch(`${API_BASE}/inventory`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(supabaseData)
-                        });
+                        url = `${API_BASE}/inventory`;
+                        method = 'POST';
+                        console.log('Creating item at:', url);
                     }
+                    
+                    const response = await fetch(url, {
+                        method: method,
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(supabaseData)
+                    });
+                    
+                    console.log('Save response status:', response.status);
+                    console.log('Save response headers:', [...response.headers]);
                     
                     if (!response.ok) {
                         const errorText = await response.text();
+                        console.log('Save error response:', errorText);
                         throw new Error(`Save failed: ${response.status} - ${errorText}`);
                     }
                     
+                    const result = await response.json();
+                    console.log('Save successful:', result);
+                    
                     showToast('✅ Saved to cloud');
-                    loadData();
+                    loadData(); // Refresh the list
                     
                 } catch (error) {
                     console.log('Cloud save error:', error);
@@ -1315,9 +1390,13 @@
         
         function saveToLocal(item) {
             if (item.id && item.id !== 'undefined') {
-                const index = inventory.findIndex(i => i.id === item.id);
+                const index = inventory.findIndex(i => i.id == item.id);
                 if (index !== -1) {
                     inventory[index] = item;
+                } else {
+                    item.id = Date.now();
+                    item.created_at = new Date().toISOString();
+                    inventory.push(item);
                 }
             } else {
                 item.id = Date.now();
@@ -1337,11 +1416,18 @@
             
             if (isOnline) {
                 try {
+                    console.log('Deleting item from cloud:', id);
                     const response = await fetch(`${API_BASE}/inventory?id=${id}`, {
                         method: 'DELETE'
                     });
                     
-                    if (!response.ok) throw new Error(`Delete failed: ${response.status}`);
+                    console.log('Delete response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.log('Delete error:', errorText);
+                        throw new Error(`Delete failed: ${response.status} - ${errorText}`);
+                    }
                     
                     showToast('✅ Deleted from cloud');
                     loadData();
@@ -1377,6 +1463,11 @@
             
             if (!name || !category || !code) {
                 showToast('⚠️ Fill all required fields', 'warning');
+                return;
+            }
+            
+            if (quantity < 0) {
+                showToast('⚠️ Quantity cannot be negative', 'warning');
                 return;
             }
             
@@ -1429,7 +1520,31 @@
             if (emptyState) emptyState.style.display = 'none';
             container.innerHTML = '';
             
-            inventory.forEach(item => {
+            // Get filter and sort values
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const sortFilter = document.getElementById('sortFilter').value;
+            
+            // Filter items
+            let filteredItems = inventory;
+            if (categoryFilter !== 'all') {
+                filteredItems = inventory.filter(item => item.category === categoryFilter);
+            }
+            
+            // Sort items
+            filteredItems.sort((a, b) => {
+                switch (sortFilter) {
+                    case 'name':
+                        return a.name.localeCompare(b.name);
+                    case 'quantity':
+                        return b.quantity - a.quantity;
+                    case 'date':
+                        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                    default:
+                        return 0;
+                }
+            });
+            
+            filteredItems.forEach(item => {
                 const quantityClass = item.quantity <= 5 ? 'critical-stock' : 
                                     item.quantity <= 10 ? 'low-stock' : '';
                 const hasPhoto = item.photo_url ? true : false;
@@ -1442,9 +1557,9 @@
                             <i class="fas fa-box"></i>
                         </div>
                         <div class="item-details">
-                            <h3>${item.name}</h3>
-                            <p><i class="fas fa-tag"></i> ${item.code} | <i class="fas fa-folder"></i> ${item.category}</p>
-                            ${item.notes ? `<p class="item-notes"><i class="fas fa-sticky-note"></i> ${item.notes.substring(0, 50)}${item.notes.length > 50 ? '...' : ''}</p>` : ''}
+                            <h3>${escapeHtml(item.name)}</h3>
+                            <p><i class="fas fa-tag"></i> ${escapeHtml(item.code)} | <i class="fas fa-folder"></i> ${escapeHtml(item.category)}</p>
+                            ${item.notes ? `<p class="item-notes"><i class="fas fa-sticky-note"></i> ${escapeHtml(item.notes.substring(0, 50))}${item.notes.length > 50 ? '...' : ''}</p>` : ''}
                         </div>
                     </div>
                     <div class="item-meta">
@@ -1452,7 +1567,7 @@
                         ${hasPhoto ? '<div class="item-photo-indicator"><i class="fas fa-paperclip"></i> Photo</div>' : ''}
                     </div>
                     <div class="item-actions">
-                        ${hasPhoto ? `<button class="action-btn view-btn" onclick="viewPhoto('${item.photo_url}')"><i class="fas fa-eye"></i></button>` : ''}
+                        ${hasPhoto ? `<button class="action-btn view-btn" onclick="viewPhoto('${escapeHtml(item.photo_url)}')"><i class="fas fa-eye"></i></button>` : ''}
                         <button class="action-btn edit-btn" onclick="editItem(${item.id})">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -1593,6 +1708,10 @@
             // Other buttons
             document.getElementById('refreshBtn').addEventListener('click', loadData);
             document.getElementById('exportBtn').addEventListener('click', exportData);
+            
+            // Filter controls
+            document.getElementById('categoryFilter').addEventListener('change', showItems);
+            document.getElementById('sortFilter').addEventListener('change', showItems);
         }
         
         // ==================== HELPER FUNCTIONS ====================
@@ -1624,6 +1743,7 @@
             
             const data = {
                 exportDate: new Date().toISOString(),
+                user: window.currentUser,
                 inventory: inventory
             };
             
@@ -1644,24 +1764,54 @@
             const existing = document.querySelector('.toast');
             if (existing) existing.remove();
             
+            const icon = type === 'success' ? 'check-circle' : 
+                        type === 'warning' ? 'exclamation-triangle' : 'info-circle';
             const toast = document.createElement('div');
             toast.className = 'toast';
-            toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> <span>${message}</span>`;
+            toast.innerHTML = `<i class="fas fa-${icon}"></i> <span>${escapeHtml(message)}</span>`;
             document.body.appendChild(toast);
             
             setTimeout(() => toast.remove(), 3000);
         }
         
-        // ==================== FILTER AND SORT ====================
-        document.getElementById('categoryFilter').addEventListener('change', function() {
-            // Filter logic here
-            showToast(`Filtered: ${this.value}`);
-        });
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
         
-        document.getElementById('sortFilter').addEventListener('change', function() {
-            // Sort logic here
-            showToast(`Sorted by: ${this.value}`);
-        });
+        // ==================== TEST FUNCTION ====================
+        // Add this to test your connection
+        window.testConnection = async function() {
+            console.log('=== Testing Connection ===');
+            console.log('API_BASE:', API_BASE);
+            
+            const endpoints = [
+                '/health',
+                '/inventory',
+                '/inventory?limit=1'
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    console.log(`\nTesting: ${endpoint}`);
+                    const response = await fetch(API_BASE + endpoint);
+                    console.log(`Status: ${response.status}`);
+                    const text = await response.text();
+                    console.log(`Response:`, text.substring(0, 200) + (text.length > 200 ? '...' : ''));
+                } catch (error) {
+                    console.log(`Error: ${error.message}`);
+                }
+            }
+            
+            console.log('=== Test Complete ===');
+            alert('Check browser console for connection test results');
+        };
+        
+        // Auto-run test on load (optional)
+        setTimeout(() => {
+            console.log('App loaded. Run testConnection() to test endpoints.');
+        }, 1000);
     </script>
 </body>
 </html>
