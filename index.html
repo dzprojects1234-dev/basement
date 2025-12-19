@@ -203,6 +203,26 @@
             color: white;
         }
 
+        .admin-login-btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .admin-login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
         .cloud-status {
             background: var(--dark-card);
             border: 1px solid var(--dark-border);
@@ -233,107 +253,6 @@
         .status-disconnected {
             border-color: var(--warning);
             color: var(--warning);
-        }
-
-        #loginModal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.95);
-            z-index: 3000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            backdrop-filter: blur(5px);
-        }
-
-        .login-modal-content {
-            background: var(--dark-card);
-            padding: 30px;
-            border-radius: 16px;
-            max-width: 450px;
-            width: 100%;
-            border: 1px solid var(--dark-border);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
-            text-align: center;
-        }
-
-        @media (max-width: 480px) {
-            .login-modal-content {
-                padding: 20px;
-            }
-        }
-
-        .login-modal-content h2 {
-            color: var(--light);
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            font-size: 22px;
-        }
-
-        .login-modal-content p {
-            color: var(--dark-text-secondary);
-            margin-bottom: 25px;
-            line-height: 1.6;
-            font-size: 15px;
-        }
-
-        .modal-input {
-            width: 100%;
-            background: var(--dark-bg);
-            border: 1px solid var(--dark-border);
-            color: var(--light);
-            padding: 14px;
-            border-radius: 8px;
-            font-size: 16px;
-            margin-bottom: 20px;
-            transition: all 0.3s ease;
-        }
-
-        .modal-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 10px;
-        }
-
-        @media (min-width: 480px) {
-            .modal-actions {
-                flex-direction: row;
-            }
-        }
-
-        .modal-actions button {
-            padding: 14px;
-            border-radius: 8px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: none;
-            font-size: 16px;
-            flex: 1;
-        }
-
-        .modal-actions button:first-child {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-        }
-
-        .modal-actions button:first-child:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-        }
-
-        .modal-actions button:last-child {
-            background: var(--dark-bg);
-            color: var(--light);
-            border: 1px solid var(--dark-border);
         }
 
         .inventory-container {
@@ -591,6 +510,16 @@
             }
         }
 
+        .action-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .action-btn:not(.disabled):hover {
+            background: var(--primary);
+            color: white;
+        }
+
         .form-title {
             display: flex;
             flex-direction: column;
@@ -741,6 +670,11 @@
             gap: 10px;
             width: 100%;
             transition: all 0.3s ease;
+        }
+
+        .add-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .sync-controls {
@@ -970,14 +904,21 @@
             font-family: 'Courier New', monospace;
             background: var(--dark-bg);
             border: 1px solid var(--dark-border);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            color: var(--success);
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            color: #000000 !important;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
             margin-top: 10px;
+        }
+        
+        body.light-mode .live-timer {
+            background: #ffffff;
+            border-color: #e2e8f0;
+            color: #000000 !important;
         }
         
         .item-timestamp {
@@ -1024,6 +965,23 @@
             color: white;
         }
         
+        .viewer-mode {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+        
+        .viewer-mode .action-btn:not(.view-btn),
+        .viewer-mode .add-btn,
+        .viewer-mode .clear-form,
+        .viewer-mode input,
+        .viewer-mode select,
+        .viewer-mode textarea,
+        .viewer-mode .photo-btn,
+        .viewer-mode .quantity-btn {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
         @keyframes slideIn {
             from {
                 transform: translateY(100%);
@@ -1037,25 +995,6 @@
     </style>
 </head>
 <body>
-    <!-- Login Modal -->
-    <div id="loginModal" class="modal">
-        <div class="login-modal-content">
-            <h2><i class="fas fa-lock"></i> Inventory System</h2>
-            <p id="loginMessage">Select connection mode:</p>
-            <div class="modal-actions">
-                <button id="connectBtn">
-                    <i class="fas fa-cloud"></i> Connect Online
-                </button>
-                <button id="localBtn">
-                    <i class="fas fa-desktop"></i> Use Offline Mode
-                </button>
-            </div>
-            <p style="margin-top: 20px; font-size: 14px; color: #94a3b8;">
-                <i class="fas fa-info-circle"></i> Online mode saves to cloud
-            </p>
-        </div>
-    </div>
-
     <!-- Main App -->
     <div class="container" id="appContainer" style="display: none;">
         <!-- Header -->
@@ -1075,7 +1014,7 @@
                     </button>
                     <div class="user-badge" id="userBadge">
                         <i class="fas fa-user"></i>
-                        <span id="usernameDisplay">Admin</span>
+                        <span id="usernameDisplay">Viewer</span>
                     </div>
                 </div>
                 <div class="user-row">
@@ -1086,9 +1025,6 @@
                         <i class="fas fa-cloud"></i>
                         <span id="statusText">Checking...</span>
                     </div>
-                    <button class="test-btn" id="testConnectionBtn" title="Inspect Console">
-                        <i class="fas fa-bug"></i> Inspect
-                    </button>
                 </div>
             </div>
         </header>
@@ -1136,9 +1072,6 @@
                     <button class="sync-btn" id="importBtn">
                         <i class="fas fa-upload"></i> Import
                     </button>
-                    <button class="sync-btn" id="syncLocalBtn" style="display: none;">
-                        <i class="fas fa-cloud-upload"></i> Sync to Cloud
-                    </button>
                 </div>
                 
                 <div class="print-controls">
@@ -1152,7 +1085,7 @@
             </div>
             
             <!-- Right Panel - Add/Edit Form -->
-            <div class="inventory-form">
+            <div class="inventory-form" id="inventoryForm">
                 <div class="form-title">
                     <h2 class="section-title" id="formTitle"><i class="fas fa-plus"></i> Add New Item</h2>
                     <button type="button" class="clear-form" id="clearFormBtn" style="display: none;">
@@ -1260,12 +1193,13 @@
         let inventory = [];
         let capturedPhoto = null;
         let isOnline = false;
+        let currentUser = null;
+        let isAdmin = false;
         let inactivityTimer = null;
-        const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+        const INACTIVITY_TIMEOUT = 60 * 60 * 1000; // 60 minutes for mobile stability
         
         // ==================== FORMAT DATE FUNCTIONS ====================
         function formatSingaporeDate(date) {
-            // Use Singapore locale - JavaScript will automatically convert to local timezone
             const options = {
                 timeZone: 'Asia/Singapore',
                 day: '2-digit',
@@ -1276,7 +1210,6 @@
                 hour12: true
             };
             
-            // Format in Singapore time
             const formatter = new Intl.DateTimeFormat('en-SG', options);
             const parts = formatter.formatToParts(date);
             
@@ -1293,14 +1226,12 @@
                 }
             });
             
-            // Ensure 2-digit hour
             hour = hour.padStart(2, '0');
             
             return `${day} ${month} ${year}, ${hour}:${minute} ${ampm}`;
         }
         
         function formatSingaporeDateTime(date) {
-            // Use Singapore locale - JavaScript will automatically convert to local timezone
             const options = {
                 timeZone: 'Asia/Singapore',
                 day: '2-digit',
@@ -1312,7 +1243,6 @@
                 hour12: true
             };
             
-            // Format in Singapore time
             const formatter = new Intl.DateTimeFormat('en-SG', options);
             const parts = formatter.formatToParts(date);
             
@@ -1330,7 +1260,6 @@
                 }
             });
             
-            // Ensure 2-digit hour
             hour = hour.padStart(2, '0');
             
             return `${day} ${month} ${year}, ${hour}:${minute}:${second} ${ampm}`;
@@ -1339,10 +1268,8 @@
         function parseDateFromISO(isoString) {
             if (!isoString) return new Date();
             
-            // Parse ISO string
             const date = new Date(isoString);
             
-            // If date is invalid, return current date
             if (isNaN(date.getTime())) {
                 return new Date();
             }
@@ -1356,6 +1283,9 @@
             const timerDisplay = document.getElementById('timerDisplay');
             if (timerDisplay) {
                 timerDisplay.textContent = formatSingaporeDateTime(now);
+                timerDisplay.style.color = '#000000';
+                timerDisplay.style.fontWeight = 'bold';
+                timerDisplay.style.fontSize = '16px';
             }
         }
         
@@ -1366,7 +1296,7 @@
             }
             
             inactivityTimer = setTimeout(() => {
-                if (confirm('You have been inactive for 30 minutes. Logout now?')) {
+                if (confirm('You have been inactive for 60 minutes. Logout now?')) {
                     localStorage.removeItem('inventory_login');
                     window.location.href = 'login.html';
                 } else {
@@ -1403,12 +1333,12 @@
         }
         
         // ==================== CHECK LOGIN ====================
-        (function() {
+        function checkLogin() {
             const savedLogin = localStorage.getItem('inventory_login');
             
             if (!savedLogin) {
                 window.location.href = 'login.html';
-                return;
+                return false;
             }
             
             try {
@@ -1418,47 +1348,66 @@
                 if (now > loginData.expires) {
                     localStorage.removeItem('inventory_login');
                     window.location.href = 'login.html';
-                    return;
+                    return false;
                 }
                 
-                window.currentUser = loginData.user;
+                currentUser = loginData.user;
+                isAdmin = (currentUser === 'admin'); // Only "admin" user can edit
+                
                 const usernameDisplay = document.getElementById('usernameDisplay');
                 if (usernameDisplay) {
-                    usernameDisplay.textContent = loginData.user;
+                    usernameDisplay.textContent = currentUser;
                 }
+                
+                // Show the app
+                document.getElementById('appContainer').style.display = 'flex';
+                
+                // Update UI based on user role
+                if (isAdmin) {
+                    document.getElementById('inventoryForm').classList.remove('viewer-mode');
+                    document.getElementById('submitBtn').classList.remove('disabled');
+                } else {
+                    document.getElementById('inventoryForm').classList.add('viewer-mode');
+                    document.getElementById('submitBtn').classList.add('disabled');
+                }
+                
+                return true;
                 
             } catch (e) {
                 localStorage.removeItem('inventory_login');
                 window.location.href = 'login.html';
+                return false;
             }
-        })();
+        }
         
         // ==================== START APP ====================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM Content Loaded');
             
+            // Check login first
+            if (!checkLogin()) {
+                return;
+            }
+            
             // Start live timer
             setInterval(updateLiveTimer, 1000);
             updateLiveTimer();
-            
-            // Show login modal
-            const loginModal = document.getElementById('loginModal');
-            if (loginModal) {
-                loginModal.style.display = 'flex';
-            }
             
             // Initialize
             setupLogout();
             setupButtons();
             initTheme();
             setupInactivityListeners();
+            
+            // Try to connect online
+            connectToOnlineMode();
         });
         
         // ==================== SETUP INACTIVITY LISTENERS ====================
         function setupInactivityListeners() {
-            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
             events.forEach(event => {
-                document.addEventListener(event, resetInactivityTimer);
+                document.addEventListener(event, resetInactivityTimer, { passive: true });
             });
             resetInactivityTimer();
         }
@@ -1481,48 +1430,36 @@
             try {
                 showToast('🔗 Connecting to cloud...');
                 
-                // Test connection
-                const response = await fetch(`${API_BASE}/health`);
+                const response = await fetch(`${API_BASE}/health`, {
+                    signal: AbortSignal.timeout(5000)
+                });
                 
                 if (!response.ok) {
                     throw new Error('Cannot connect to cloud service');
                 }
                 
-                // SUCCESS - We're connected!
                 isOnline = true;
-                document.getElementById('loginModal').style.display = 'none';
-                document.getElementById('appContainer').style.display = 'flex';
                 document.getElementById('dataMode').textContent = 'Online Mode';
                 document.getElementById('statusText').textContent = 'Connected to Cloud';
                 document.getElementById('cloudStatus').classList.add('status-connected');
-                document.getElementById('syncLocalBtn').style.display = 'none';
                 
                 showToast('✅ Connected to cloud database');
                 
-                // Load data from cloud
                 await loadData();
                 
             } catch (error) {
                 console.log('Cannot connect to cloud:', error);
+                isOnline = false;
+                document.getElementById('dataMode').textContent = 'Offline Mode';
+                document.getElementById('statusText').textContent = 'Using Local Storage';
+                document.getElementById('cloudStatus').classList.add('status-disconnected');
+                
                 showToast('⚠️ Cloud connection failed. Using offline mode.');
-                useLocalStorage();
+                loadLocalData();
             }
         }
         
         // ==================== LOCAL STORAGE MODE ====================
-        function useLocalStorage() {
-            isOnline = false;
-            document.getElementById('loginModal').style.display = 'none';
-            document.getElementById('appContainer').style.display = 'flex';
-            document.getElementById('dataMode').textContent = 'Local Mode';
-            document.getElementById('statusText').textContent = 'Using Local Storage';
-            document.getElementById('cloudStatus').classList.add('status-disconnected');
-            document.getElementById('syncLocalBtn').style.display = 'flex';
-            
-            showToast('📱 Using local storage');
-            loadLocalData();
-        }
-        
         function loadLocalData() {
             const saved = localStorage.getItem('inventory_data');
             if (saved) {
@@ -1530,9 +1467,6 @@
                     inventory = JSON.parse(saved);
                     showItems();
                     updateNumbers();
-                    showToast('✅ Loaded from local storage');
-                    
-                    console.log('Loaded from local storage:', inventory.length, 'items');
                     
                 } catch (e) {
                     console.log('Local data corrupted:', e);
@@ -1547,7 +1481,6 @@
         function saveLocalData() {
             try {
                 localStorage.setItem('inventory_data', JSON.stringify(inventory));
-                console.log('Local backup saved:', inventory.length, 'items');
             } catch (error) {
                 console.log('Local storage backup failed:', error.message);
             }
@@ -1585,7 +1518,6 @@
                     
                     showItems();
                     updateNumbers();
-                    showToast('✅ Loaded from cloud');
                     
                     // Save backup locally
                     saveLocalData();
@@ -1602,18 +1534,22 @@
         
         // ==================== SAVE ITEM ====================
         async function saveItem(item) {
+            if (!isAdmin) {
+                showToast('⚠️ Only admin can edit inventory', 'warning');
+                return;
+            }
+            
             // Add timestamp for Singapore time
             const now = new Date();
             item.updated_at = formatSingaporeDate(now);
             
-            // If it's a new item, add created_at timestamp
             if (!item.created_at) {
                 item.created_at = formatSingaporeDate(now);
             }
             
             if (isOnline) {
                 try {
-                    // Prepare data for cloud (convert to ISO for Supabase)
+                    // Prepare data for cloud
                     const cloudItem = {
                         ...item,
                         created_at: now.toISOString(),
@@ -1675,6 +1611,11 @@
         
         // ==================== DELETE ITEM ====================
         async function deleteItem(id) {
+            if (!isAdmin) {
+                showToast('⚠️ Only admin can delete items', 'warning');
+                return;
+            }
+            
             if (!confirm('Delete this item?')) return;
             
             if (isOnline) {
@@ -1711,6 +1652,11 @@
         // ==================== FORM HANDLING ====================
         document.getElementById('addItemForm').addEventListener('submit', function(e) {
             e.preventDefault();
+            
+            if (!isAdmin) {
+                showToast('⚠️ Only admin can add items', 'warning');
+                return;
+            }
             
             const id = document.getElementById('itemId').value;
             const name = document.getElementById('itemName').value.trim();
@@ -1808,7 +1754,6 @@
                 const quantityClass = item.quantity <= 5 ? 'critical-stock' : 
                                     item.quantity <= 10 ? 'low-stock' : '';
                 const hasPhoto = item.photo_url ? true : false;
-                
                 const timestamp = item.updated_at || item.created_at || '';
                 
                 const div = document.createElement('div');
@@ -1831,10 +1776,10 @@
                     </div>
                     <div class="item-actions">
                         ${item.photo_url ? `<button class="action-btn view-btn" onclick="viewPhoto('${escapeHtml(item.photo_url)}')"><i class="fas fa-eye"></i></button>` : ''}
-                        <button class="action-btn edit-btn" onclick="editItem(${item.id})">
+                        <button class="action-btn edit-btn ${!isAdmin ? 'disabled' : ''}" onclick="editItem(${item.id})" ${!isAdmin ? 'disabled' : ''}>
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="deleteItem(${item.id})">
+                        <button class="action-btn delete-btn ${!isAdmin ? 'disabled' : ''}" onclick="deleteItem(${item.id})" ${!isAdmin ? 'disabled' : ''}>
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -1844,6 +1789,11 @@
         }
         
         function editItem(id) {
+            if (!isAdmin) {
+                showToast('⚠️ Only admin can edit items', 'warning');
+                return;
+            }
+            
             const item = inventory.find(i => i.id == id);
             if (!item) return;
             
@@ -1919,8 +1869,77 @@
             document.body.appendChild(modal);
         }
         
+        // ==================== PHOTO COMPRESSION ====================
+        async function compressPhoto(file) {
+            return new Promise((resolve, reject) => {
+                if (file.size <= 1 * 1024 * 1024) { // If already less than 1MB
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                    return;
+                }
+                
+                const img = new Image();
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                img.onload = () => {
+                    // Calculate new dimensions (max 1024px)
+                    let width = img.width;
+                    let height = img.height;
+                    const maxSize = 1024;
+                    
+                    if (width > height && width > maxSize) {
+                        height = (height * maxSize) / width;
+                        width = maxSize;
+                    } else if (height > maxSize) {
+                        width = (width * maxSize) / height;
+                        height = maxSize;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Draw and compress
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Try different quality levels
+                    let quality = 0.7;
+                    let compressedDataUrl;
+                    
+                    // First try with 0.7 quality
+                    compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    
+                    // If still too large, reduce quality further
+                    if (compressedDataUrl.length > 5 * 1024 * 1024) {
+                        quality = 0.5;
+                        compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                    }
+                    
+                    // If still too large, reduce size further
+                    if (compressedDataUrl.length > 5 * 1024 * 1024) {
+                        canvas.width = width * 0.7;
+                        canvas.height = height * 0.7;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        compressedDataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                    }
+                    
+                    resolve(compressedDataUrl);
+                };
+                
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        }
+        
         // ==================== IMPORT FUNCTION ====================
         function importData() {
+            if (!isAdmin) {
+                showToast('⚠️ Only admin can import data', 'warning');
+                return;
+            }
+            
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.json';
@@ -1941,7 +1960,6 @@
                         if (confirm(`Import ${data.inventory.length} items? This will replace current inventory.`)) {
                             inventory = data.inventory;
                             
-                            // Convert timestamps to Singapore format
                             const now = new Date();
                             inventory.forEach(item => {
                                 if (!item.created_at || item.created_at.includes('T')) {
@@ -2007,35 +2025,80 @@
             return text.toString().replace(/"/g, '""');
         }
         
-        // ==================== PRINT FUNCTION ====================
+        // ==================== PRINT FUNCTION (WITH NOTES) ====================
         function printInventory() {
             if (inventory.length === 0) {
                 showToast('⚠️ No data to print', 'warning');
                 return;
             }
             
-            // Create a print-friendly version
             const printContent = `
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <title>Inventory Print</title>
                     <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        h1 { text-align: center; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        th { background-color: #f4f4f4; }
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            margin: 20px; 
+                            color: #000000;
+                        }
+                        h1 { 
+                            text-align: center; 
+                            color: #000000;
+                            margin-bottom: 20px;
+                        }
+                        .print-info {
+                            margin-bottom: 20px;
+                            padding-bottom: 10px;
+                            border-bottom: 1px solid #ddd;
+                        }
+                        table { 
+                            width: 100%; 
+                            border-collapse: collapse; 
+                            margin-top: 20px;
+                            font-size: 12px;
+                        }
+                        th, td { 
+                            border: 1px solid #000000; 
+                            padding: 8px; 
+                            text-align: left; 
+                            color: #000000;
+                        }
+                        th { 
+                            background-color: #f4f4f4;
+                            font-weight: bold;
+                        }
+                        .notes-column {
+                            max-width: 200px;
+                            word-wrap: break-word;
+                        }
                         @media print {
-                            @page { size: portrait; margin: 0.5cm; }
-                            body { margin: 0; }
+                            @page { 
+                                size: portrait; 
+                                margin: 0.5cm; 
+                            }
+                            body { 
+                                margin: 0; 
+                                color: #000000;
+                            }
+                            table {
+                                page-break-inside: auto;
+                            }
+                            tr {
+                                page-break-inside: avoid;
+                                page-break-after: auto;
+                            }
                         }
                     </style>
                 </head>
                 <body>
                     <h1>Basement Supply Inventory</h1>
-                    <p>Generated: ${formatSingaporeDate(new Date())}</p>
-                    <p>Total Items: ${inventory.length}</p>
+                    <div class="print-info">
+                        <p><strong>Generated:</strong> ${formatSingaporeDate(new Date())}</p>
+                        <p><strong>Total Items:</strong> ${inventory.length}</p>
+                        <p><strong>Total Quantity:</strong> ${inventory.reduce((sum, item) => sum + (item.quantity || 0), 0)}</p>
+                    </div>
                     <table>
                         <thead>
                             <tr>
@@ -2044,6 +2107,7 @@
                                 <th>Code</th>
                                 <th>Category</th>
                                 <th>Quantity</th>
+                                <th>Notes</th>
                                 <th>Last Updated</th>
                             </tr>
                         </thead>
@@ -2055,11 +2119,15 @@
                                     <td>${escapeHtml(item.code)}</td>
                                     <td>${escapeHtml(item.category)}</td>
                                     <td>${item.quantity}</td>
+                                    <td class="notes-column">${escapeHtml(item.notes || '')}</td>
                                     <td>${escapeHtml(item.updated_at || item.created_at || '')}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
+                    <div style="margin-top: 20px; font-size: 10px; color: #666; text-align: center;">
+                        Printed from Basement Supply Inventory Tracker
+                    </div>
                 </body>
                 </html>
             `;
@@ -2068,49 +2136,26 @@
             printWindow.document.write(printContent);
             printWindow.document.close();
             printWindow.focus();
-            printWindow.print();
+            
+            // Wait for content to load
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 250);
         }
         
         // ==================== SETUP BUTTONS ====================
         function setupButtons() {
-            // Login buttons
-            document.getElementById('connectBtn').addEventListener('click', connectToOnlineMode);
-            document.getElementById('localBtn').addEventListener('click', useLocalStorage);
-            
-            // Test connection button
-            document.getElementById('testConnectionBtn').addEventListener('click', function() {
-                console.log('=== INSPECT CONSOLE ===');
-                console.log('Current app state:');
-                console.log('isOnline:', isOnline);
-                console.log('API_BASE:', API_BASE);
-                console.log('Inventory length:', inventory.length);
-                console.log('Current user:', window.currentUser);
-                
-                alert('Check browser console for inspection results');
-            });
-            
-            // Sync button
-            document.getElementById('syncLocalBtn').addEventListener('click', function() {
-                showToast('🔄 Syncing to cloud...');
-                connectToOnlineMode();
-            });
-            
-            // Import button
-            document.getElementById('importBtn').addEventListener('click', importData);
-            
-            // Export buttons
-            document.getElementById('exportBtn').addEventListener('click', exportData);
-            document.getElementById('downloadCsvBtn').addEventListener('click', exportToCSV);
-            
-            // Print button
-            document.getElementById('printBtn').addEventListener('click', printInventory);
-            
             // Form buttons
             document.getElementById('clearFormBtn').addEventListener('click', resetForm);
             
             // Quantity buttons
             ['minus5Btn', 'minus1Btn', 'plus1Btn', 'plus5Btn'].forEach(id => {
                 document.getElementById(id).addEventListener('click', function() {
+                    if (!isAdmin) {
+                        showToast('⚠️ Only admin can edit', 'warning');
+                        return;
+                    }
                     const change = parseInt(this.textContent);
                     const input = document.getElementById('itemQuantity');
                     const current = parseInt(input.value) || 0;
@@ -2120,11 +2165,21 @@
             
             // Photo buttons
             document.getElementById('cameraBtn').addEventListener('click', () => {
+                if (!isAdmin) {
+                    showToast('⚠️ Only admin can add photos', 'warning');
+                    return;
+                }
                 document.getElementById('mobileCameraInput').click();
             });
+            
             document.getElementById('uploadBtn').addEventListener('click', () => {
+                if (!isAdmin) {
+                    showToast('⚠️ Only admin can upload photos', 'warning');
+                    return;
+                }
                 document.getElementById('fileUpload').click();
             });
+            
             document.getElementById('cancelPhotoBtn').addEventListener('click', () => {
                 capturedPhoto = null;
                 const preview = document.getElementById('photoPreview');
@@ -2133,16 +2188,24 @@
                 document.getElementById('cancelPhotoBtn').style.display = 'none';
             });
             
-            document.getElementById('mobileCameraInput').addEventListener('change', function(e) {
-                handlePhotoUpload(e.target.files[0]);
+            document.getElementById('mobileCameraInput').addEventListener('change', async function(e) {
+                if (!isAdmin) return;
+                const file = e.target.files[0];
+                if (file) await handlePhotoUpload(file);
             });
             
-            document.getElementById('fileUpload').addEventListener('change', function(e) {
-                handlePhotoUpload(e.target.files[0]);
+            document.getElementById('fileUpload').addEventListener('change', async function(e) {
+                if (!isAdmin) return;
+                const file = e.target.files[0];
+                if (file) await handlePhotoUpload(file);
             });
             
             // Other buttons
             document.getElementById('refreshBtn').addEventListener('click', loadData);
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+            document.getElementById('importBtn').addEventListener('click', importData);
+            document.getElementById('downloadCsvBtn').addEventListener('click', exportToCSV);
+            document.getElementById('printBtn').addEventListener('click', printInventory);
             
             // Filter controls
             document.getElementById('categoryFilter').addEventListener('change', showItems);
@@ -2150,24 +2213,28 @@
         }
         
         // ==================== HELPER FUNCTIONS ====================
-        function handlePhotoUpload(file) {
+        async function handlePhotoUpload(file) {
             if (!file) return;
             
-            if (file.size > 5 * 1024 * 1024) {
-                showToast('⚠️ File too large (max 5MB)', 'warning');
+            if (file.size > 10 * 1024 * 1024) {
+                showToast('⚠️ File too large (max 10MB)', 'warning');
                 return;
             }
             
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                capturedPhoto = e.target.result;
+            showToast('🔄 Compressing photo...');
+            
+            try {
+                const compressedPhoto = await compressPhoto(file);
+                capturedPhoto = compressedPhoto;
                 const preview = document.getElementById('photoPreview');
-                preview.src = capturedPhoto;
+                preview.src = compressedPhoto;
                 preview.style.display = 'block';
                 document.getElementById('cancelPhotoBtn').style.display = 'flex';
-                showToast('✅ Photo added');
-            };
-            reader.readAsDataURL(file);
+                showToast('✅ Photo added (compressed)');
+            } catch (error) {
+                console.error('Photo compression error:', error);
+                showToast('⚠️ Failed to process photo', 'warning');
+            }
         }
         
         function exportData() {
@@ -2178,7 +2245,7 @@
             
             const data = {
                 exportDate: formatSingaporeDate(new Date()),
-                user: window.currentUser,
+                user: currentUser,
                 inventory: inventory
             };
             
