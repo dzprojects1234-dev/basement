@@ -977,6 +977,7 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            margin-top: 10px;
         }
         
         .item-timestamp {
@@ -1064,7 +1065,7 @@
     <div id="loginModal" class="modal">
         <div class="login-modal-content">
             <h2><i class="fas fa-lock"></i> Inventory System</h2>
-            <p id="loginMessage">Checking connection to database...</p>
+            <p id="loginMessage">Select connection mode:</p>
             <div class="modal-actions">
                 <button id="connectBtn">
                     <i class="fas fa-cloud"></i> Connect Online
@@ -1288,7 +1289,6 @@
         let isOnline = false;
         let inactivityTimer = null;
         const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
-        let autoConnectAttempted = false;
         
         // ==================== FORMAT DATE FUNCTIONS ====================
         function formatSingaporeDate(date) {
@@ -1318,12 +1318,10 @@
         function updateLiveTimer() {
             const now = new Date();
             const timerDisplay = document.getElementById('timerDisplay');
-            timerDisplay.textContent = formatSingaporeDateTime(now);
+            if (timerDisplay) {
+                timerDisplay.textContent = formatSingaporeDateTime(now);
+            }
         }
-        
-        // Start the live timer
-        setInterval(updateLiveTimer, 1000);
-        updateLiveTimer(); // Initial update
         
         // ==================== INACTIVITY LOGOUT ====================
         function resetInactivityTimer() {
@@ -1354,6 +1352,8 @@
         function initTheme() {
             const savedTheme = localStorage.getItem('inventory_theme');
             const themeToggle = document.getElementById('themeToggle');
+            
+            if (!themeToggle) return;
             
             if (savedTheme === 'light') {
                 document.body.classList.add('light-mode');
@@ -1396,7 +1396,10 @@
                 }
                 
                 window.currentUser = loginData.user;
-                document.getElementById('usernameDisplay').textContent = loginData.user;
+                const usernameDisplay = document.getElementById('usernameDisplay');
+                if (usernameDisplay) {
+                    usernameDisplay.textContent = loginData.user;
+                }
                 
             } catch (e) {
                 localStorage.removeItem('inventory_login');
@@ -1406,23 +1409,36 @@
         
         // ==================== START APP ====================
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded');
+            
+            // Start live timer
+            setInterval(updateLiveTimer, 1000);
+            updateLiveTimer();
+            
+            // Show login modal
+            const loginModal = document.getElementById('loginModal');
+            if (loginModal) {
+                loginModal.style.display = 'flex';
+            }
+            
+            // Initialize
             setupLogout();
-            document.getElementById('loginModal').style.display = 'flex';
-            document.getElementById('loginMessage').textContent = 'Select connection mode:';
             setupButtons();
             initTheme();
-            checkOnlineConnection();
             setupInactivityListeners();
         });
         
         // ==================== LOGOUT ====================
         function setupLogout() {
-            document.getElementById('logoutBtn').addEventListener('click', function() {
-                if (confirm('Logout from inventory system?')) {
-                    localStorage.removeItem('inventory_login');
-                    window.location.href = 'login.html';
-                }
-            });
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    if (confirm('Logout from inventory system?')) {
+                        localStorage.removeItem('inventory_login');
+                        window.location.href = 'login.html';
+                    }
+                });
+            }
         }
         
         // ==================== CHECK ONLINE CONNECTION ====================
@@ -1449,50 +1465,12 @@
         async function connectToOnlineMode() {
             try {
                 showToast('🔗 Connecting to cloud...');
-                console.log('Testing connection to Worker...');
                 
-                // First test if the worker is reachable
-                try {
-                    console.log('Testing health endpoint...');
-                    const healthResponse = await fetch(`${API_BASE}/health`);
-                    console.log('Health response status:', healthResponse.status);
-                    
-                    if (!healthResponse.ok) {
-                        throw new Error(`Health check failed: ${healthResponse.status}`);
-                    }
-                    
-                    const healthData = await healthResponse.json();
-                    console.log('Health data:', healthData);
-                    
-                    if (healthData.supabaseConnected === false) {
-                        throw new Error('Supabase not connected in Worker');
-                    }
-                    
-                } catch (healthError) {
-                    console.log('Health check failed:', healthError);
-                    throw new Error('Cannot reach Cloudflare Worker');
-                }
+                // Test connection
+                const isConnected = await checkOnlineConnection();
                 
-                // Then test if we can actually get data (but don't fail if empty)
-                try {
-                    console.log('Testing inventory endpoint...');
-                    const inventoryResponse = await fetch(`${API_BASE}/inventory?limit=1`, {
-                        signal: AbortSignal.timeout(5000)
-                    });
-                    console.log('Inventory response status:', inventoryResponse.status);
-                    
-                    if (!inventoryResponse.ok && inventoryResponse.status !== 404) {
-                        const errorText = await inventoryResponse.text();
-                        console.log('Inventory error:', errorText);
-                        // Don't throw - we'll continue anyway if health check passed
-                    } else if (inventoryResponse.ok) {
-                        const inventoryData = await inventoryResponse.json();
-                        console.log('Inventory test data:', inventoryData);
-                    }
-                    
-                } catch (inventoryError) {
-                    console.log('Inventory test warning (non-fatal):', inventoryError.message);
-                    // Continue anyway - the health check passed
+                if (!isConnected) {
+                    throw new Error('Cannot connect to cloud service');
                 }
                 
                 // SUCCESS - We're connected!
@@ -1535,14 +1513,6 @@
             if (saved) {
                 try {
                     inventory = JSON.parse(saved);
-                    
-                    // Clean up any temporary photo flags
-                    inventory.forEach(item => {
-                        if (item.photo_needs_refresh) {
-                            delete item.photo_needs_refresh;
-                        }
-                    });
-                    
                     showItems();
                     updateNumbers();
                     showToast('✅ Loaded from local storage');
@@ -1561,25 +1531,10 @@
         
         function saveLocalData() {
             try {
-                // Remove large base64 photos before saving to localStorage
-                const dataForStorage = inventory.map(item => {
-                    // Create a clean copy
-                    const itemCopy = { ...item };
-                    
-                    // If it's a base64 photo (not a URL), don't save it locally
-                    if (itemCopy.photo_url && itemCopy.photo_url.startsWith('data:image')) {
-                        itemCopy.photo_url = null; // Remove the base64 data
-                        itemCopy.has_photo = true; // Mark that there was a photo
-                    }
-                    
-                    return itemCopy;
-                });
-                
-                localStorage.setItem('inventory_data', JSON.stringify(dataForStorage));
-                console.log('Local backup saved (photos optimized):', dataForStorage.length, 'items');
+                localStorage.setItem('inventory_data', JSON.stringify(inventory));
+                console.log('Local backup saved:', inventory.length, 'items');
             } catch (error) {
-                console.log('Local storage backup failed (non-critical):', error.message);
-                // Don't show error - local backup is optional
+                console.log('Local storage backup failed:', error.message);
             }
         }
         
@@ -1590,29 +1545,14 @@
             if (isOnline) {
                 try {
                     console.log('Fetching from cloud:', `${API_BASE}/inventory`);
-                    const response = await fetch(`${API_BASE}/inventory`, {
-                        signal: AbortSignal.timeout(10000)
-                    });
+                    const response = await fetch(`${API_BASE}/inventory`);
                     console.log('Cloud response status:', response.status);
                     
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        console.log('Cloud error response:', errorText);
-                        throw new Error(`HTTP ${response.status}: ${errorText}`);
+                        throw new Error(`HTTP ${response.status}`);
                     }
                     
-                    const text = await response.text();
-                    console.log('Cloud raw response length:', text.length, 'characters');
-                    
-                    let data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch (parseError) {
-                        console.log('Failed to parse JSON:', parseError);
-                        throw new Error('Invalid JSON response from server');
-                    }
-                    
-                    console.log('Cloud parsed data type:', Array.isArray(data) ? 'Array' : typeof data);
+                    const data = await response.json();
                     
                     // Handle different response formats
                     if (Array.isArray(data)) {
@@ -1630,29 +1570,13 @@
                     updateNumbers();
                     showToast('✅ Loaded from cloud');
                     
-                    // Try to save backup locally (without large photos)
-                    try {
-                        saveLocalData();
-                    } catch (storageError) {
-                        console.log('Local backup skipped:', storageError.message);
-                        // This is OK - we still have cloud data
-                    }
+                    // Save backup locally
+                    saveLocalData();
                     
                 } catch (error) {
                     console.log('Cloud load error:', error);
-                    
-                    // Check if it's just a storage quota error (not a real cloud error)
-                    if (error.name === 'QuotaExceededError' || error.message.includes('quota')) {
-                        // This is just a local storage issue, cloud data was loaded successfully
-                        // Show items anyway
-                        showItems();
-                        updateNumbers();
-                        showToast('✅ Loaded from cloud (local backup skipped)');
-                    } else {
-                        // Real cloud error - fall back to local data
-                        showToast('⚠️ Cloud load failed, using local data');
-                        loadLocalData();
-                    }
+                    showToast('⚠️ Cloud load failed, using local data');
+                    loadLocalData();
                 }
             } else {
                 loadLocalData();
@@ -1672,21 +1596,6 @@
                 item.created_at = formatSingaporeDate(now);
             }
             
-            // Prepare data for Supabase
-            const supabaseData = {
-                name: item.name,
-                category: item.category,
-                code: item.code,
-                quantity: item.quantity,
-                notes: item.notes || null,
-                photo_url: item.photo_url || null,
-                updated_at: item.updated_at
-            };
-            
-            if (!item.id || item.id === 'undefined') {
-                supabaseData.created_at = item.created_at;
-            }
-            
             if (isOnline) {
                 try {
                     let url, method;
@@ -1695,12 +1604,10 @@
                         // Update
                         url = `${API_BASE}/inventory?id=${item.id}`;
                         method = 'PUT';
-                        console.log('Updating item at:', url);
                     } else {
                         // Create
                         url = `${API_BASE}/inventory`;
                         method = 'POST';
-                        console.log('Creating item at:', url);
                     }
                     
                     const response = await fetch(url, {
@@ -1709,19 +1616,12 @@
                             'Content-Type': 'application/json',
                             'Accept': 'application/json'
                         },
-                        body: JSON.stringify(supabaseData)
+                        body: JSON.stringify(item)
                     });
                     
-                    console.log('Save response status:', response.status);
-                    
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        console.log('Save error response:', errorText);
-                        throw new Error(`Save failed: ${response.status} - ${errorText}`);
+                        throw new Error(`Save failed: ${response.status}`);
                     }
-                    
-                    const result = await response.json();
-                    console.log('Save successful:', result);
                     
                     showToast('✅ Saved to cloud');
                     loadData(); // Refresh the list
@@ -1767,12 +1667,8 @@
                         method: 'DELETE'
                     });
                     
-                    console.log('Delete response status:', response.status);
-                    
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        console.log('Delete error:', errorText);
-                        throw new Error(`Delete failed: ${response.status} - ${errorText}`);
+                        throw new Error(`Delete failed: ${response.status}`);
                     }
                     
                     showToast('✅ Deleted from cloud');
@@ -1895,7 +1791,7 @@
             filteredItems.forEach(item => {
                 const quantityClass = item.quantity <= 5 ? 'critical-stock' : 
                                     item.quantity <= 10 ? 'low-stock' : '';
-                const hasPhoto = item.photo_url || item.has_photo ? true : false;
+                const hasPhoto = item.photo_url ? true : false;
                 
                 // Use updated_at if available, otherwise created_at
                 const timestamp = item.updated_at || item.created_at || '';
@@ -1942,11 +1838,6 @@
             document.getElementById('itemCode').value = item.code;
             document.getElementById('itemQuantity').value = item.quantity;
             document.getElementById('itemNotes').value = item.notes || '';
-            
-            // If item has photo but it was removed from local storage, warn user
-            if (item.has_photo && !item.photo_url) {
-                showToast('ℹ️ Photo exists in cloud but not loaded locally', 'info');
-            }
             
             if (item.photo_url) {
                 capturedPhoto = item.photo_url;
@@ -2020,51 +1911,42 @@
             input.type = 'file';
             input.accept = '.json';
             
-            input.onchange = async function(e) {
+            input.onchange = function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
                 
-                try {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        try {
-                            const data = JSON.parse(e.target.result);
-                            
-                            if (!data.inventory || !Array.isArray(data.inventory)) {
-                                throw new Error('Invalid backup file format');
-                            }
-                            
-                            if (confirm(`Import ${data.inventory.length} items? This will replace current inventory.`)) {
-                                inventory = data.inventory;
-                                
-                                // Add timestamps if not present
-                                const now = new Date();
-                                const timestamp = formatSingaporeDate(now);
-                                inventory.forEach(item => {
-                                    if (!item.created_at) {
-                                        item.created_at = timestamp;
-                                    }
-                                    item.updated_at = timestamp;
-                                });
-                                
-                                if (isOnline) {
-                                    // TODO: Implement cloud import
-                                    showToast('⚠️ Cloud import not yet implemented. Saving locally.');
-                                }
-                                
-                                saveLocalData();
-                                showItems();
-                                updateNumbers();
-                                showToast(`✅ Imported ${data.inventory.length} items`);
-                            }
-                        } catch (parseError) {
-                            showToast('⚠️ Failed to parse backup file', 'warning');
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        if (!data.inventory || !Array.isArray(data.inventory)) {
+                            throw new Error('Invalid backup file format');
                         }
-                    };
-                    reader.readAsText(file);
-                } catch (error) {
-                    showToast('⚠️ Import failed: ' + error.message, 'warning');
-                }
+                        
+                        if (confirm(`Import ${data.inventory.length} items? This will replace current inventory.`)) {
+                            inventory = data.inventory;
+                            
+                            // Add timestamps if not present
+                            const now = new Date();
+                            const timestamp = formatSingaporeDate(now);
+                            inventory.forEach(item => {
+                                if (!item.created_at) {
+                                    item.created_at = timestamp;
+                                }
+                                item.updated_at = timestamp;
+                            });
+                            
+                            saveLocalData();
+                            showItems();
+                            updateNumbers();
+                            showToast(`✅ Imported ${data.inventory.length} items`);
+                        }
+                    } catch (parseError) {
+                        showToast('⚠️ Failed to parse backup file', 'warning');
+                    }
+                };
+                reader.readAsText(file);
             };
             
             input.click();
@@ -2117,47 +1999,65 @@
                 return;
             }
             
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            // Add title
-            doc.setFontSize(18);
-            doc.text('Basement Supply Inventory', 105, 15, { align: 'center' });
-            doc.setFontSize(11);
-            doc.text(`Generated on: ${formatSingaporeDate(new Date())}`, 105, 22, { align: 'center' });
-            doc.text(`Total Items: ${inventory.length}`, 105, 28, { align: 'center' });
-            
-            // Add table headers
-            const headers = [['No.', 'Name', 'Code', 'Category', 'Quantity', 'Last Updated']];
-            const data = inventory.map((item, index) => [
-                index + 1,
-                item.name.substring(0, 20),
-                item.code,
-                item.category.substring(0, 15),
-                item.quantity.toString(),
-                item.updated_at || item.created_at || ''
-            ]);
-            
-            // Auto-table configuration
-            doc.autoTable({
-                head: headers,
-                body: data,
-                startY: 35,
-                theme: 'grid',
-                styles: { fontSize: 8 },
-                headStyles: { fillColor: [124, 58, 237] },
-                columnStyles: {
-                    0: { cellWidth: 10 },
-                    1: { cellWidth: 40 },
-                    2: { cellWidth: 30 },
-                    3: { cellWidth: 30 },
-                    4: { cellWidth: 20 },
-                    5: { cellWidth: 40 }
-                }
-            });
-            
-            // Save PDF
-            doc.save(`inventory-${new Date().toISOString().split('T')[0]}.pdf`);
+            // Create a simple PDF using print functionality
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Inventory PDF</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1 { text-align: center; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f4f4f4; }
+                        @media print {
+                            @page { size: portrait; margin: 0.5cm; }
+                            body { margin: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Basement Supply Inventory</h1>
+                    <p>Generated: ${formatSingaporeDate(new Date())}</p>
+                    <p>Total Items: ${inventory.length}</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Name</th>
+                                <th>Code</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Last Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${inventory.map((item, index) => `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${escapeHtml(item.name)}</td>
+                                    <td>${escapeHtml(item.code)}</td>
+                                    <td>${escapeHtml(item.category)}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${escapeHtml(item.updated_at || item.created_at || '')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() {
+                                window.close();
+                            }, 500);
+                        }
+                    </script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
             showToast('✅ PDF generated');
         }
         
@@ -2221,6 +2121,7 @@
                 </body>
                 </html>
             `);
+            printWindow.document.close();
         }
         
         // ==================== SETUP BUTTONS ====================
@@ -2232,46 +2133,11 @@
             // Test connection button (renamed to Inspect Console)
             document.getElementById('testConnectionBtn').addEventListener('click', async function() {
                 console.log('=== MANUAL CONNECTION TEST ===');
-                
-                // Test 1: Direct URL test
-                console.log('1. Testing Worker URL directly...');
-                try {
-                    const response = await fetch(`${API_BASE}/health`);
-                    console.log(`Health Status: ${response.status}`);
-                    const health = await response.json();
-                    console.log('Health Response:', health);
-                } catch (e) {
-                    console.log('Health test failed:', e.message);
-                }
-                
-                // Test 2: Inventory test
-                console.log('\n2. Testing inventory endpoint...');
-                try {
-                    const response = await fetch(`${API_BASE}/inventory`);
-                    console.log(`Inventory Status: ${response.status}`);
-                    const text = await response.text();
-                    console.log('Inventory Response length:', text.length, 'characters');
-                    
-                    if (text) {
-                        try {
-                            const data = JSON.parse(text);
-                            console.log('Parsed data type:', Array.isArray(data) ? 'Array' : typeof data);
-                            console.log('Number of items:', Array.isArray(data) ? data.length : 'Not an array');
-                        } catch (parseError) {
-                            console.log('Could not parse JSON:', parseError.message);
-                        }
-                    }
-                } catch (e) {
-                    console.log('Inventory test failed:', e.message);
-                }
-                
-                // Test 3: Current app state
-                console.log('\n3. Current app state:');
+                console.log('Current app state:');
                 console.log('isOnline:', isOnline);
                 console.log('API_BASE:', API_BASE);
                 console.log('Inventory length:', inventory.length);
                 console.log('Current user:', window.currentUser);
-                console.log('Theme:', localStorage.getItem('inventory_theme'));
                 
                 alert('Check browser console for inspection results');
             });
@@ -2402,13 +2268,6 @@
             div.textContent = text;
             return div.innerHTML;
         }
-        
-        // ==================== REMOVE AUTO-CONNECT ====================
-        // The login modal will now wait for user selection
-        
     </script>
-    <!-- Include jsPDF library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </body>
 </html>
