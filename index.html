@@ -1034,30 +1034,6 @@
                 opacity: 1;
             }
         }
-        
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            .inventory-list, .inventory-list * {
-                visibility: visible;
-            }
-            .inventory-list {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                max-height: none !important;
-                overflow: visible !important;
-            }
-            .sync-controls, .filter-controls, .print-controls {
-                display: none !important;
-            }
-            .inventory-item {
-                break-inside: avoid;
-                page-break-inside: avoid;
-            }
-        }
     </style>
 </head>
 <body>
@@ -1172,9 +1148,6 @@
                     <button class="print-btn" id="downloadCsvBtn">
                         <i class="fas fa-file-csv"></i> Download CSV
                     </button>
-                    <button class="print-btn" id="downloadPdfBtn">
-                        <i class="fas fa-file-pdf"></i> Download PDF
-                    </button>
                 </div>
             </div>
             
@@ -1288,29 +1261,27 @@
         let capturedPhoto = null;
         let isOnline = false;
         let inactivityTimer = null;
-        const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+        const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
         
         // ==================== FORMAT DATE FUNCTIONS ====================
         function formatSingaporeDate(date) {
-            const singaporeTime = new Date(date.getTime() + (8 * 60 * 60 * 1000)); // Singapore is UTC+8
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const day = singaporeTime.getDate().toString().padStart(2, '0');
-            const month = months[singaporeTime.getMonth()];
-            const year = singaporeTime.getFullYear();
-            const hours = singaporeTime.getHours().toString().padStart(2, '0');
-            const minutes = singaporeTime.getMinutes().toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
             return `${day} ${month} ${year}, ${hours}:${minutes}`;
         }
         
         function formatSingaporeDateTime(date) {
-            const singaporeTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            const day = singaporeTime.getDate().toString().padStart(2, '0');
-            const month = months[singaporeTime.getMonth()];
-            const year = singaporeTime.getFullYear();
-            const hours = singaporeTime.getHours().toString().padStart(2, '0');
-            const minutes = singaporeTime.getMinutes().toString().padStart(2, '0');
-            const seconds = singaporeTime.getSeconds().toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
             return `${day} ${month} ${year}, ${hours}:${minutes}:${seconds}`;
         }
         
@@ -1339,15 +1310,6 @@
             }, INACTIVITY_TIMEOUT);
         }
         
-        // Set up inactivity listeners
-        function setupInactivityListeners() {
-            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
-            events.forEach(event => {
-                document.addEventListener(event, resetInactivityTimer);
-            });
-            resetInactivityTimer(); // Start the timer
-        }
-        
         // ==================== THEME MANAGEMENT ====================
         function initTheme() {
             const savedTheme = localStorage.getItem('inventory_theme');
@@ -1359,7 +1321,6 @@
                 document.body.classList.add('light-mode');
                 themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light';
             } else {
-                document.body.classList.remove('light-mode');
                 themeToggle.innerHTML = '<i class="fas fa-moon"></i> Dark';
             }
             
@@ -1428,6 +1389,15 @@
             setupInactivityListeners();
         });
         
+        // ==================== SETUP INACTIVITY LISTENERS ====================
+        function setupInactivityListeners() {
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+            events.forEach(event => {
+                document.addEventListener(event, resetInactivityTimer);
+            });
+            resetInactivityTimer();
+        }
+        
         // ==================== LOGOUT ====================
         function setupLogout() {
             const logoutBtn = document.getElementById('logoutBtn');
@@ -1441,35 +1411,15 @@
             }
         }
         
-        // ==================== CHECK ONLINE CONNECTION ====================
-        async function checkOnlineConnection() {
-            try {
-                console.log('Testing connection to:', `${API_BASE}/health`);
-                const response = await fetch(`${API_BASE}/health`);
-                console.log('Health check response:', response.status);
-                
-                if (response && response.ok) {
-                    const data = await response.json();
-                    console.log('Health check data:', data);
-                    return true;
-                } else {
-                    return false;
-                }
-            } catch (error) {
-                console.log('Cloud check failed:', error.message);
-                return false;
-            }
-        }
-        
         // ==================== CONNECT TO ONLINE MODE ====================
         async function connectToOnlineMode() {
             try {
                 showToast('🔗 Connecting to cloud...');
                 
                 // Test connection
-                const isConnected = await checkOnlineConnection();
+                const response = await fetch(`${API_BASE}/health`);
                 
-                if (!isConnected) {
+                if (!response.ok) {
                     throw new Error('Cannot connect to cloud service');
                 }
                 
@@ -1540,13 +1490,9 @@
         
         // ==================== LOAD DATA ====================
         async function loadData() {
-            console.log('loadData called, isOnline:', isOnline);
-            
             if (isOnline) {
                 try {
-                    console.log('Fetching from cloud:', `${API_BASE}/inventory`);
                     const response = await fetch(`${API_BASE}/inventory`);
-                    console.log('Cloud response status:', response.status);
                     
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}`);
@@ -1554,18 +1500,14 @@
                     
                     const data = await response.json();
                     
-                    // Handle different response formats
                     if (Array.isArray(data)) {
                         inventory = data;
                     } else if (data && Array.isArray(data.data)) {
                         inventory = data.data;
-                    } else if (data && data.error) {
-                        throw new Error(data.error);
                     } else {
                         inventory = [];
                     }
                     
-                    console.log('Inventory loaded from cloud, items:', inventory.length);
                     showItems();
                     updateNumbers();
                     showToast('✅ Loaded from cloud');
@@ -1585,8 +1527,6 @@
         
         // ==================== SAVE ITEM ====================
         async function saveItem(item) {
-            console.log('Saving item:', item);
-            
             // Add timestamp for Singapore time
             const now = new Date();
             item.updated_at = formatSingaporeDate(now);
@@ -1601,21 +1541,16 @@
                     let url, method;
                     
                     if (item.id && item.id !== 'undefined') {
-                        // Update
                         url = `${API_BASE}/inventory?id=${item.id}`;
                         method = 'PUT';
                     } else {
-                        // Create
                         url = `${API_BASE}/inventory`;
                         method = 'POST';
                     }
                     
                     const response = await fetch(url, {
                         method: method,
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(item)
                     });
                     
@@ -1624,7 +1559,7 @@
                     }
                     
                     showToast('✅ Saved to cloud');
-                    loadData(); // Refresh the list
+                    loadData();
                     
                 } catch (error) {
                     console.log('Cloud save error:', error);
@@ -1662,7 +1597,6 @@
             
             if (isOnline) {
                 try {
-                    console.log('Deleting item from cloud:', id);
                     const response = await fetch(`${API_BASE}/inventory?id=${id}`, {
                         method: 'DELETE'
                     });
@@ -1780,9 +1714,7 @@
                     case 'quantity':
                         return b.quantity - a.quantity;
                     case 'date':
-                        const dateA = new Date(a.updated_at || a.created_at || 0);
-                        const dateB = new Date(b.updated_at || b.created_at || 0);
-                        return dateB - dateA;
+                        return new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0);
                     default:
                         return 0;
                 }
@@ -1793,7 +1725,6 @@
                                     item.quantity <= 10 ? 'low-stock' : '';
                 const hasPhoto = item.photo_url ? true : false;
                 
-                // Use updated_at if available, otherwise created_at
                 const timestamp = item.updated_at || item.created_at || '';
                 
                 const div = document.createElement('div');
@@ -1851,7 +1782,6 @@
             document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Update Item';
             document.getElementById('clearFormBtn').style.display = 'flex';
             
-            // Scroll to form on mobile
             if (window.innerWidth < 768) {
                 document.querySelector('.inventory-form').scrollIntoView({ behavior: 'smooth' });
             }
@@ -1927,7 +1857,6 @@
                         if (confirm(`Import ${data.inventory.length} items? This will replace current inventory.`)) {
                             inventory = data.inventory;
                             
-                            // Add timestamps if not present
                             const now = new Date();
                             const timestamp = formatSingaporeDate(now);
                             inventory.forEach(item => {
@@ -1992,80 +1921,15 @@
             return text.toString().replace(/"/g, '""');
         }
         
-        // ==================== EXPORT PDF ====================
-        function exportToPDF() {
+        // ==================== PRINT FUNCTION ====================
+        function printInventory() {
             if (inventory.length === 0) {
-                showToast('⚠️ No data to export', 'warning');
+                showToast('⚠️ No data to print', 'warning');
                 return;
             }
             
-            // Create a simple PDF using print functionality
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Inventory PDF</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        h1 { text-align: center; }
-                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        th { background-color: #f4f4f4; }
-                        @media print {
-                            @page { size: portrait; margin: 0.5cm; }
-                            body { margin: 0; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h1>Basement Supply Inventory</h1>
-                    <p>Generated: ${formatSingaporeDate(new Date())}</p>
-                    <p>Total Items: ${inventory.length}</p>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>No.</th>
-                                <th>Name</th>
-                                <th>Code</th>
-                                <th>Category</th>
-                                <th>Quantity</th>
-                                <th>Last Updated</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${inventory.map((item, index) => `
-                                <tr>
-                                    <td>${index + 1}</td>
-                                    <td>${escapeHtml(item.name)}</td>
-                                    <td>${escapeHtml(item.code)}</td>
-                                    <td>${escapeHtml(item.category)}</td>
-                                    <td>${item.quantity}</td>
-                                    <td>${escapeHtml(item.updated_at || item.created_at || '')}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                            setTimeout(function() {
-                                window.close();
-                            }, 500);
-                        }
-                    </script>
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            showToast('✅ PDF generated');
-        }
-        
-        // ==================== PRINT FUNCTION ====================
-        function printInventory() {
             // Create a print-friendly version
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
+            const printContent = `
                 <!DOCTYPE html>
                 <html>
                 <head>
@@ -2110,18 +1974,15 @@
                             `).join('')}
                         </tbody>
                     </table>
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                            setTimeout(function() {
-                                window.close();
-                            }, 500);
-                        }
-                    </script>
                 </body>
                 </html>
-            `);
+            `;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(printContent);
             printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
         }
         
         // ==================== SETUP BUTTONS ====================
@@ -2130,9 +1991,9 @@
             document.getElementById('connectBtn').addEventListener('click', connectToOnlineMode);
             document.getElementById('localBtn').addEventListener('click', useLocalStorage);
             
-            // Test connection button (renamed to Inspect Console)
-            document.getElementById('testConnectionBtn').addEventListener('click', async function() {
-                console.log('=== MANUAL CONNECTION TEST ===');
+            // Test connection button
+            document.getElementById('testConnectionBtn').addEventListener('click', function() {
+                console.log('=== INSPECT CONSOLE ===');
                 console.log('Current app state:');
                 console.log('isOnline:', isOnline);
                 console.log('API_BASE:', API_BASE);
@@ -2143,9 +2004,9 @@
             });
             
             // Sync button
-            document.getElementById('syncLocalBtn').addEventListener('click', async function() {
+            document.getElementById('syncLocalBtn').addEventListener('click', function() {
                 showToast('🔄 Syncing to cloud...');
-                await connectToOnlineMode();
+                connectToOnlineMode();
             });
             
             // Import button
@@ -2154,7 +2015,6 @@
             // Export buttons
             document.getElementById('exportBtn').addEventListener('click', exportData);
             document.getElementById('downloadCsvBtn').addEventListener('click', exportToCSV);
-            document.getElementById('downloadPdfBtn').addEventListener('click', exportToPDF);
             
             // Print button
             document.getElementById('printBtn').addEventListener('click', printInventory);
