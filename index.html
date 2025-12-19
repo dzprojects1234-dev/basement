@@ -41,6 +41,19 @@
             line-height: 1.6;
             min-height: 100vh;
             padding: 12px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.light-mode {
+            background-color: #f8fafc;
+            color: #1e293b;
+            --dark-bg: #f1f5f9;
+            --dark-card: #ffffff;
+            --dark-card-hover: #f8fafc;
+            --dark-border: #e2e8f0;
+            --dark-text: #1e293b;
+            --dark-text-secondary: #64748b;
+            --light: #0f172a;
         }
 
         .container {
@@ -934,6 +947,82 @@
             color: white;
         }
         
+        .header-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .theme-toggle {
+            background: var(--dark-bg);
+            border: 1px solid var(--dark-border);
+            color: var(--light);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .live-timer {
+            font-family: 'Courier New', monospace;
+            background: var(--dark-bg);
+            border: 1px solid var(--dark-border);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .item-timestamp {
+            font-size: 11px;
+            color: var(--dark-text-secondary);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .print-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        @media (min-width: 480px) {
+            .print-controls {
+                flex-direction: row;
+                gap: 15px;
+            }
+        }
+        
+        .print-btn {
+            background: var(--dark-bg);
+            border: 1px solid var(--info);
+            color: var(--info);
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            flex: 1;
+        }
+        
+        .print-btn:hover {
+            background: var(--info);
+            color: white;
+        }
+        
         @keyframes slideIn {
             from {
                 transform: translateY(100%);
@@ -944,6 +1033,30 @@
                 opacity: 1;
             }
         }
+        
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .inventory-list, .inventory-list * {
+                visibility: visible;
+            }
+            .inventory-list {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            .sync-controls, .filter-controls, .print-controls {
+                display: none !important;
+            }
+            .inventory-item {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body>
@@ -951,7 +1064,7 @@
     <div id="loginModal" class="modal">
         <div class="login-modal-content">
             <h2><i class="fas fa-lock"></i> Inventory System</h2>
-            <p>Checking connection to database...</p>
+            <p id="loginMessage">Checking connection to database...</p>
             <div class="modal-actions">
                 <button id="connectBtn">
                     <i class="fas fa-cloud"></i> Connect Online
@@ -973,24 +1086,33 @@
             <div class="header-left">
                 <h1><i class="fas fa-boxes"></i> Basement Supply Inventory</h1>
                 <p class="subtitle">Secure shared inventory with team</p>
+                <div class="live-timer" id="liveTimer">
+                    <i class="fas fa-clock"></i>
+                    <span id="timerDisplay">00 Jan 0000, 00:00:00</span>
+                </div>
             </div>
             <div class="user-info">
-                <div class="user-row">
+                <div class="header-controls">
+                    <button class="theme-toggle" id="themeToggle">
+                        <i class="fas fa-moon"></i> Dark
+                    </button>
                     <div class="user-badge" id="userBadge">
                         <i class="fas fa-user"></i>
                         <span id="usernameDisplay">Admin</span>
                     </div>
+                </div>
+                <div class="user-row">
                     <button class="logout-btn" id="logoutBtn">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
+                    <div class="cloud-status" id="cloudStatus">
+                        <i class="fas fa-cloud"></i>
+                        <span id="statusText">Checking...</span>
+                    </div>
+                    <button class="test-btn" id="testConnectionBtn" title="Inspect Console">
+                        <i class="fas fa-bug"></i> Inspect
+                    </button>
                 </div>
-                <div class="cloud-status" id="cloudStatus">
-                    <i class="fas fa-cloud"></i>
-                    <span id="statusText">Checking...</span>
-                </div>
-                <button class="test-btn" id="testConnectionBtn" title="Test Connection">
-                    <i class="fas fa-bug"></i> Test
-                </button>
             </div>
         </header>
 
@@ -1032,10 +1154,25 @@
                         <i class="fas fa-sync-alt"></i> Refresh
                     </button>
                     <button class="sync-btn warning" id="exportBtn">
-                        <i class="fas fa-download"></i> Export
+                        <i class="fas fa-download"></i> Export JSON
+                    </button>
+                    <button class="sync-btn" id="importBtn">
+                        <i class="fas fa-upload"></i> Import
                     </button>
                     <button class="sync-btn" id="syncLocalBtn" style="display: none;">
                         <i class="fas fa-cloud-upload"></i> Sync to Cloud
+                    </button>
+                </div>
+                
+                <div class="print-controls">
+                    <button class="print-btn" id="printBtn">
+                        <i class="fas fa-print"></i> Print Inventory
+                    </button>
+                    <button class="print-btn" id="downloadCsvBtn">
+                        <i class="fas fa-file-csv"></i> Download CSV
+                    </button>
+                    <button class="print-btn" id="downloadPdfBtn">
+                        <i class="fas fa-file-pdf"></i> Download PDF
                     </button>
                 </div>
             </div>
@@ -1149,6 +1286,95 @@
         let inventory = [];
         let capturedPhoto = null;
         let isOnline = false;
+        let inactivityTimer = null;
+        const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes in milliseconds
+        let autoConnectAttempted = false;
+        
+        // ==================== FORMAT DATE FUNCTIONS ====================
+        function formatSingaporeDate(date) {
+            const singaporeTime = new Date(date.getTime() + (8 * 60 * 60 * 1000)); // Singapore is UTC+8
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const day = singaporeTime.getDate().toString().padStart(2, '0');
+            const month = months[singaporeTime.getMonth()];
+            const year = singaporeTime.getFullYear();
+            const hours = singaporeTime.getHours().toString().padStart(2, '0');
+            const minutes = singaporeTime.getMinutes().toString().padStart(2, '0');
+            return `${day} ${month} ${year}, ${hours}:${minutes}`;
+        }
+        
+        function formatSingaporeDateTime(date) {
+            const singaporeTime = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const day = singaporeTime.getDate().toString().padStart(2, '0');
+            const month = months[singaporeTime.getMonth()];
+            const year = singaporeTime.getFullYear();
+            const hours = singaporeTime.getHours().toString().padStart(2, '0');
+            const minutes = singaporeTime.getMinutes().toString().padStart(2, '0');
+            const seconds = singaporeTime.getSeconds().toString().padStart(2, '0');
+            return `${day} ${month} ${year}, ${hours}:${minutes}:${seconds}`;
+        }
+        
+        // ==================== LIVE TIMER ====================
+        function updateLiveTimer() {
+            const now = new Date();
+            const timerDisplay = document.getElementById('timerDisplay');
+            timerDisplay.textContent = formatSingaporeDateTime(now);
+        }
+        
+        // Start the live timer
+        setInterval(updateLiveTimer, 1000);
+        updateLiveTimer(); // Initial update
+        
+        // ==================== INACTIVITY LOGOUT ====================
+        function resetInactivityTimer() {
+            if (inactivityTimer) {
+                clearTimeout(inactivityTimer);
+            }
+            
+            inactivityTimer = setTimeout(() => {
+                if (confirm('You have been inactive for 30 minutes. Logout now?')) {
+                    localStorage.removeItem('inventory_login');
+                    window.location.href = 'login.html';
+                } else {
+                    resetInactivityTimer();
+                }
+            }, INACTIVITY_TIMEOUT);
+        }
+        
+        // Set up inactivity listeners
+        function setupInactivityListeners() {
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+            events.forEach(event => {
+                document.addEventListener(event, resetInactivityTimer);
+            });
+            resetInactivityTimer(); // Start the timer
+        }
+        
+        // ==================== THEME MANAGEMENT ====================
+        function initTheme() {
+            const savedTheme = localStorage.getItem('inventory_theme');
+            const themeToggle = document.getElementById('themeToggle');
+            
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-mode');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light';
+            } else {
+                document.body.classList.remove('light-mode');
+                themeToggle.innerHTML = '<i class="fas fa-moon"></i> Dark';
+            }
+            
+            themeToggle.addEventListener('click', () => {
+                if (document.body.classList.contains('light-mode')) {
+                    document.body.classList.remove('light-mode');
+                    localStorage.setItem('inventory_theme', 'dark');
+                    themeToggle.innerHTML = '<i class="fas fa-moon"></i> Dark';
+                } else {
+                    document.body.classList.add('light-mode');
+                    localStorage.setItem('inventory_theme', 'light');
+                    themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light';
+                }
+            });
+        }
         
         // ==================== CHECK LOGIN ====================
         (function() {
@@ -1182,8 +1408,11 @@
         document.addEventListener('DOMContentLoaded', function() {
             setupLogout();
             document.getElementById('loginModal').style.display = 'flex';
+            document.getElementById('loginMessage').textContent = 'Select connection mode:';
             setupButtons();
+            initTheme();
             checkOnlineConnection();
+            setupInactivityListeners();
         });
         
         // ==================== LOGOUT ====================
@@ -1206,15 +1435,12 @@
                 if (response && response.ok) {
                     const data = await response.json();
                     console.log('Health check data:', data);
-                    document.getElementById('statusText').textContent = 'Cloud available';
                     return true;
                 } else {
-                    document.getElementById('statusText').textContent = 'Cloud unavailable';
                     return false;
                 }
             } catch (error) {
                 console.log('Cloud check failed:', error.message);
-                document.getElementById('statusText').textContent = 'Cloud unavailable';
                 return false;
             }
         }
@@ -1437,6 +1663,15 @@
         async function saveItem(item) {
             console.log('Saving item:', item);
             
+            // Add timestamp for Singapore time
+            const now = new Date();
+            item.updated_at = formatSingaporeDate(now);
+            
+            // If it's a new item, add created_at timestamp
+            if (!item.created_at) {
+                item.created_at = formatSingaporeDate(now);
+            }
+            
             // Prepare data for Supabase
             const supabaseData = {
                 name: item.name,
@@ -1444,8 +1679,13 @@
                 code: item.code,
                 quantity: item.quantity,
                 notes: item.notes || null,
-                photo_url: item.photo_url || null
+                photo_url: item.photo_url || null,
+                updated_at: item.updated_at
             };
+            
+            if (!item.id || item.id === 'undefined') {
+                supabaseData.created_at = item.created_at;
+            }
             
             if (isOnline) {
                 try {
@@ -1503,12 +1743,10 @@
                     inventory[index] = item;
                 } else {
                     item.id = Date.now();
-                    item.created_at = new Date().toISOString();
                     inventory.push(item);
                 }
             } else {
                 item.id = Date.now();
-                item.created_at = new Date().toISOString();
                 inventory.push(item);
             }
             
@@ -1646,7 +1884,9 @@
                     case 'quantity':
                         return b.quantity - a.quantity;
                     case 'date':
-                        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                        const dateA = new Date(a.updated_at || a.created_at || 0);
+                        const dateB = new Date(b.updated_at || b.created_at || 0);
+                        return dateB - dateA;
                     default:
                         return 0;
                 }
@@ -1656,6 +1896,9 @@
                 const quantityClass = item.quantity <= 5 ? 'critical-stock' : 
                                     item.quantity <= 10 ? 'low-stock' : '';
                 const hasPhoto = item.photo_url || item.has_photo ? true : false;
+                
+                // Use updated_at if available, otherwise created_at
+                const timestamp = item.updated_at || item.created_at || '';
                 
                 const div = document.createElement('div');
                 div.className = 'inventory-item';
@@ -1668,6 +1911,7 @@
                             <h3>${escapeHtml(item.name)}</h3>
                             <p><i class="fas fa-tag"></i> ${escapeHtml(item.code)} | <i class="fas fa-folder"></i> ${escapeHtml(item.category)}</p>
                             ${item.notes ? `<p class="item-notes"><i class="fas fa-sticky-note"></i> ${escapeHtml(item.notes.substring(0, 50))}${item.notes.length > 50 ? '...' : ''}</p>` : ''}
+                            ${timestamp ? `<p class="item-timestamp"><i class="fas fa-clock"></i> ${escapeHtml(timestamp)}</p>` : ''}
                         </div>
                     </div>
                     <div class="item-meta">
@@ -1770,13 +2014,222 @@
             document.body.appendChild(modal);
         }
         
+        // ==================== IMPORT FUNCTION ====================
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            
+            input.onchange = async function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                try {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            
+                            if (!data.inventory || !Array.isArray(data.inventory)) {
+                                throw new Error('Invalid backup file format');
+                            }
+                            
+                            if (confirm(`Import ${data.inventory.length} items? This will replace current inventory.`)) {
+                                inventory = data.inventory;
+                                
+                                // Add timestamps if not present
+                                const now = new Date();
+                                const timestamp = formatSingaporeDate(now);
+                                inventory.forEach(item => {
+                                    if (!item.created_at) {
+                                        item.created_at = timestamp;
+                                    }
+                                    item.updated_at = timestamp;
+                                });
+                                
+                                if (isOnline) {
+                                    // TODO: Implement cloud import
+                                    showToast('⚠️ Cloud import not yet implemented. Saving locally.');
+                                }
+                                
+                                saveLocalData();
+                                showItems();
+                                updateNumbers();
+                                showToast(`✅ Imported ${data.inventory.length} items`);
+                            }
+                        } catch (parseError) {
+                            showToast('⚠️ Failed to parse backup file', 'warning');
+                        }
+                    };
+                    reader.readAsText(file);
+                } catch (error) {
+                    showToast('⚠️ Import failed: ' + error.message, 'warning');
+                }
+            };
+            
+            input.click();
+        }
+        
+        // ==================== EXPORT CSV ====================
+        function exportToCSV() {
+            if (inventory.length === 0) {
+                showToast('⚠️ No data to export', 'warning');
+                return;
+            }
+            
+            const headers = ['Name', 'Code', 'Category', 'Quantity', 'Notes', 'Created At', 'Updated At'];
+            const csvRows = [
+                headers.join(','),
+                ...inventory.map(item => [
+                    `"${escapeCsv(item.name || '')}"`,
+                    `"${escapeCsv(item.code || '')}"`,
+                    `"${escapeCsv(item.category || '')}"`,
+                    item.quantity || 0,
+                    `"${escapeCsv(item.notes || '')}"`,
+                    `"${escapeCsv(item.created_at || '')}"`,
+                    `"${escapeCsv(item.updated_at || '')}"`
+                ].join(','))
+            ];
+            
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `inventory-${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showToast('✅ CSV exported');
+        }
+        
+        function escapeCsv(text) {
+            if (!text) return '';
+            return text.toString().replace(/"/g, '""');
+        }
+        
+        // ==================== EXPORT PDF ====================
+        function exportToPDF() {
+            if (inventory.length === 0) {
+                showToast('⚠️ No data to export', 'warning');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add title
+            doc.setFontSize(18);
+            doc.text('Basement Supply Inventory', 105, 15, { align: 'center' });
+            doc.setFontSize(11);
+            doc.text(`Generated on: ${formatSingaporeDate(new Date())}`, 105, 22, { align: 'center' });
+            doc.text(`Total Items: ${inventory.length}`, 105, 28, { align: 'center' });
+            
+            // Add table headers
+            const headers = [['No.', 'Name', 'Code', 'Category', 'Quantity', 'Last Updated']];
+            const data = inventory.map((item, index) => [
+                index + 1,
+                item.name.substring(0, 20),
+                item.code,
+                item.category.substring(0, 15),
+                item.quantity.toString(),
+                item.updated_at || item.created_at || ''
+            ]);
+            
+            // Auto-table configuration
+            doc.autoTable({
+                head: headers,
+                body: data,
+                startY: 35,
+                theme: 'grid',
+                styles: { fontSize: 8 },
+                headStyles: { fillColor: [124, 58, 237] },
+                columnStyles: {
+                    0: { cellWidth: 10 },
+                    1: { cellWidth: 40 },
+                    2: { cellWidth: 30 },
+                    3: { cellWidth: 30 },
+                    4: { cellWidth: 20 },
+                    5: { cellWidth: 40 }
+                }
+            });
+            
+            // Save PDF
+            doc.save(`inventory-${new Date().toISOString().split('T')[0]}.pdf`);
+            showToast('✅ PDF generated');
+        }
+        
+        // ==================== PRINT FUNCTION ====================
+        function printInventory() {
+            // Create a print-friendly version
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Inventory Print</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        h1 { text-align: center; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f4f4f4; }
+                        @media print {
+                            @page { size: portrait; margin: 0.5cm; }
+                            body { margin: 0; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <h1>Basement Supply Inventory</h1>
+                    <p>Generated: ${formatSingaporeDate(new Date())}</p>
+                    <p>Total Items: ${inventory.length}</p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>No.</th>
+                                <th>Name</th>
+                                <th>Code</th>
+                                <th>Category</th>
+                                <th>Quantity</th>
+                                <th>Last Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${inventory.map((item, index) => `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${escapeHtml(item.name)}</td>
+                                    <td>${escapeHtml(item.code)}</td>
+                                    <td>${escapeHtml(item.category)}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>${escapeHtml(item.updated_at || item.created_at || '')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            setTimeout(function() {
+                                window.close();
+                            }, 500);
+                        }
+                    </script>
+                </body>
+                </html>
+            `);
+        }
+        
         // ==================== SETUP BUTTONS ====================
         function setupButtons() {
             // Login buttons
             document.getElementById('connectBtn').addEventListener('click', connectToOnlineMode);
             document.getElementById('localBtn').addEventListener('click', useLocalStorage);
             
-            // Test connection button
+            // Test connection button (renamed to Inspect Console)
             document.getElementById('testConnectionBtn').addEventListener('click', async function() {
                 console.log('=== MANUAL CONNECTION TEST ===');
                 
@@ -1817,8 +2270,10 @@
                 console.log('isOnline:', isOnline);
                 console.log('API_BASE:', API_BASE);
                 console.log('Inventory length:', inventory.length);
+                console.log('Current user:', window.currentUser);
+                console.log('Theme:', localStorage.getItem('inventory_theme'));
                 
-                alert('Check browser console for test results');
+                alert('Check browser console for inspection results');
             });
             
             // Sync button
@@ -1826,6 +2281,17 @@
                 showToast('🔄 Syncing to cloud...');
                 await connectToOnlineMode();
             });
+            
+            // Import button
+            document.getElementById('importBtn').addEventListener('click', importData);
+            
+            // Export buttons
+            document.getElementById('exportBtn').addEventListener('click', exportData);
+            document.getElementById('downloadCsvBtn').addEventListener('click', exportToCSV);
+            document.getElementById('downloadPdfBtn').addEventListener('click', exportToPDF);
+            
+            // Print button
+            document.getElementById('printBtn').addEventListener('click', printInventory);
             
             // Form buttons
             document.getElementById('clearFormBtn').addEventListener('click', resetForm);
@@ -1865,7 +2331,6 @@
             
             // Other buttons
             document.getElementById('refreshBtn').addEventListener('click', loadData);
-            document.getElementById('exportBtn').addEventListener('click', exportData);
             
             // Filter controls
             document.getElementById('categoryFilter').addEventListener('change', showItems);
@@ -1900,7 +2365,7 @@
             }
             
             const data = {
-                exportDate: new Date().toISOString(),
+                exportDate: formatSingaporeDate(new Date()),
                 user: window.currentUser,
                 inventory: inventory
             };
@@ -1938,29 +2403,12 @@
             return div.innerHTML;
         }
         
-        // ==================== AUTO-FORCE ONLINE FOR TESTING ====================
-        // Remove this block after testing
-        setTimeout(async () => {
-            console.log('=== AUTO-TESTING CONNECTION ===');
-            console.log('API Base:', API_BASE);
-            
-            // Test if we can connect
-            try {
-                const healthResponse = await fetch(`${API_BASE}/health`);
-                if (healthResponse.ok) {
-                    const healthData = await healthResponse.json();
-                    console.log('Auto-test: Health check OK', healthData);
-                    
-                    // If health check passes, auto-connect to online mode
-                    if (document.getElementById('loginModal').style.display === 'flex') {
-                        console.log('Auto-connecting to online mode...');
-                        await connectToOnlineMode();
-                    }
-                }
-            } catch (error) {
-                console.log('Auto-test: Cannot connect, staying in login modal');
-            }
-        }, 500);
+        // ==================== REMOVE AUTO-CONNECT ====================
+        // The login modal will now wait for user selection
+        
     </script>
+    <!-- Include jsPDF library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
 </body>
 </html>
